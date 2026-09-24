@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prayer Admin</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="brand">🙏 Prayer Admin</div><nav><a href="/">Home</a><a href="/request.html">Submit Prayer</a><a href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a><a class="active" href="/admin">Admin</a></nav></header>
+<main class="container">
+<section class="page-heading"><p class="eyebrow">Administration</p><h1>Prayer Dashboard</h1><p>Public and private prayers are shown here. Deleting a prayer permanently removes its reactions and Prayer Room assignment.</p></section>
+<section class="stats"><div class="stat"><strong id="all">0</strong><span>All</span></div><div class="stat"><strong id="public">0</strong><span>Public</span></div><div class="stat"><strong id="private">0</strong><span>Private</span></div><div class="stat"><strong id="room">0</strong><span>In Room</span></div></section>
+<section class="card filters">
+<div class="filter-row"><select id="visibility"><option value="all">All</option><option value="public">Public</option><option value="private">Private</option></select><select id="sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="most_prayed">Most Prayed</option></select><input id="date" type="date"><input id="search" placeholder="Search prayer or name"><button class="button" onclick="loadAll()">Search</button></div>
+</section>
+<section id="participants" class="card"><h2>People Currently in Prayer Room</h2><div id="peopleList">Loading...</div></section>
+<section id="prayers" class="prayer-grid"></section>
+</main>
+<script>
+const socket=io();
+async function loadStats(){const r=await fetch("/api/admin/stats");if(!r.ok)return;const d=await r.json();for(const k of ["all","public","private","room"])document.getElementById(k).textContent=d[k];}
+async function loadParticipants(){const r=await fetch("/api/admin/participants");if(!r.ok)return;const d=await r.json();document.getElementById("peopleList").innerHTML=d.length?d.map(p=>`<span class="badge">🙏 ${escapeHtml(p.name)}</span>`).join(" "):"<span class='muted'>No one is currently in the Prayer Room.</span>";}
+async function loadPrayers(){const q=new URLSearchParams({visibility:document.getElementById("visibility").value,sort:document.getElementById("sort").value,date:document.getElementById("date").value,search:document.getElementById("search").value});const r=await fetch("/api/admin/prayers?"+q);if(!r.ok){document.getElementById("prayers").innerHTML='<div class="card error">Admin authentication is required. Refresh and enter the configured credentials.</div>';return;}const d=await r.json();document.getElementById("prayers").innerHTML=d.length?d.map(p=>`<article class="prayer-card"><div class="prayer-meta"><span>${p.visibility==='private'?'🔒 Private':'🌐 Public'}</span><small>🙏 ${p.prayer_count||0} prayed</small></div><p>${escapeHtml(p.request)}</p><div class="author">— ${escapeHtml(p.name||'Anonymous')}</div><small>${new Date(p.created_at).toLocaleString()}</small><div class="actions"><button class="button secondary" onclick="deletePrayer(${p.id})">🗑️ Delete Prayer</button></div></article>`).join(""):'<div class="card empty">No prayers match your filters.</div>';}
+async function loadAll(){await Promise.all([loadStats(),loadParticipants(),loadPrayers()]);}
+async function deletePrayer(id){if(!confirm("Delete this prayer permanently? This removes the prayer, reactions, and Prayer Room assignment."))return;const r=await fetch(`/api/prayers/${id}`,{method:"DELETE"});const d=await r.json();if(!r.ok){alert(d.error||"Unable to delete prayer.");return;}loadAll();}
+socket.on("room-count",loadAll);socket.on("room-presence",loadAll);socket.on("prayer-data-changed",loadAll);socket.on("prayer-deleted",loadAll);
+function escapeHtml(x){const d=document.createElement("div");d.textContent=x;return d.innerHTML;}
+loadAll();
+</script>
+</body>
+</html>

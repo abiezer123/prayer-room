@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit Prayer</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🙏 Prayer Room</div>
+  <nav>
+    <a href="/">Home</a>
+    <a class="active" href="/request.html">Submit Prayer</a>
+    <a href="/prayers.html">Public Prayers</a>
+    <a href="/room.html">Prayer Room</a>
+    <a href="/admin">Admin</a>
+  </nav>
+</header>
+<main class="container narrow">
+<section class="card">
+<p class="eyebrow">Prayer Request</p>
+<h1>What would you like us to pray for?</h1>
+<form id="requestForm">
+<label>Your name <span class="muted">(optional)</span></label>
+<input id="name" placeholder="Your name">
+<label>Prayer request</label>
+<textarea id="request" rows="7" required placeholder="Write your prayer request here..."></textarea>
+<label>Visibility</label>
+<select id="visibility">
+<option value="public">Public — people in the Prayer Room can see it</option>
+<option value="private">Private — only administrators can see it</option>
+</select>
+<button class="button" type="submit">Submit Prayer Request</button>
+<p id="message"></p>
+</form>
+</section>
+</main>
+<script>
+const form=document.getElementById("requestForm");
+const message=document.getElementById("message");
+form.addEventListener("submit",async e=>{
+ e.preventDefault();
+ const res=await fetch("/api/prayers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:document.getElementById("name").value,request:document.getElementById("request").value,visibility:document.getElementById("visibility").value})});
+ const data=await res.json();
+ if(!res.ok){message.textContent=data.error||"Something went wrong.";message.className="error";return;}
+ form.reset();message.textContent=data.message||"Prayer submitted.";message.className="success";
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "prayer-room-supabase-pg",
+  "version": "2.0.0",
+  "description": "Realtime church prayer request and prayer room using Express, Socket.IO and Supabase PostgreSQL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "pg": "^8.23.0",
+    "socket.io": "^4.8.1"
+  }
+}

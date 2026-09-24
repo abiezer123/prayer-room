@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prayer Room</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<header class="topbar">
+<div class="brand">🙏 Prayer Room</div>
+<nav>
+<a href="/">Home</a><a href="/request.html">Submit Prayer</a><a href="/prayers.html">Public Prayers</a><a class="active" href="/room.html">Prayer Room</a>
+</nav>
+</header>
+<main class="container">
+<section id="join" class="card narrow-card">
+<div class="eyebrow">Realtime Prayer Room</div>
+<h1>Enter the Prayer Room</h1>
+<p><strong id="liveCount">0</strong> people are currently praying.</p>
+<form id="joinForm"><input id="personName" required placeholder="Your name"><button class="button">Enter Room</button></form>
+<p id="joinError" class="error"></p>
+</section>
+<section id="room" hidden>
+<div class="room-header">
+<div><div class="eyebrow">You are praying as</div><h1 id="currentName"></h1></div>
+<div class="live"><span></span> <b id="peopleNow">0</b> people praying now</div>
+<button class="button secondary" id="leave">Leave Room</button>
+</div>
+<div class="stats">
+<div><strong id="assigned">0</strong><span>Assigned</span></div>
+<div><strong id="done">0</strong><span>Prayed</span></div>
+<div><strong id="waiting">0</strong><span>Waiting</span></div>
+</div>
+<div id="prayers" class="prayer-grid"></div>
+</section>
+</main>
+<script>
+const socket=io();
+let token=localStorage.getItem("prayerRoomToken");
+const join=document.getElementById("join"),room=document.getElementById("room"),prayers=document.getElementById("prayers");
+function showRoom(){join.hidden=true;room.hidden=false;}
+function showJoin(){join.hidden=false;room.hidden=true;}
+async function refresh(){
+ if(!token){showJoin();return;}
+ try{
+  const r=await fetch("/api/room/"+encodeURIComponent(token));
+  if(!r.ok){localStorage.removeItem("prayerRoomToken");token=null;showJoin();return;}
+  const d=await r.json();showRoom();
+  document.getElementById("currentName").textContent=d.participant.name;
+  setRoomCount(d.roomCount);
+  const done=d.prayers.filter(p=>p.completed_at).length;
+  document.getElementById("assigned").textContent=d.prayers.length;
+  document.getElementById("done").textContent=done;
+  document.getElementById("waiting").textContent=d.prayers.length-done;
+  prayers.innerHTML=d.prayers.length?d.prayers.map(p=>`
+   <article class="prayer-card ${p.completed_at?'prayed':''}">
+    <div class="prayer-meta"><span>${p.completed_at?'✓ Already Prayed':'🙏 Assigned Prayer'}</span><small>🙏 ${p.prayer_count||0} prayed</small></div>
+    <p>${escapeHtml(p.request)}</p>
+    <div class="author">— ${escapeHtml(p.name||"Anonymous")}</div>
+    ${p.completed_at?'<div class="success">You prayed for this request.</div>':`<button class="button" onclick="pray(${p.assignment_id})">🙏 I Prayed for This</button>`}
+    <button class="button secondary" style="margin-top:8px" onclick="deletePrayer(${p.id})">🗑️ Delete Prayer</button>
+   </article>`).join(""):'<div class="card empty">No public prayer has been assigned to you yet.</div>';
+ }catch(e){console.error("Prayer room refresh:",e);}
+}
+function setRoomCount(n){document.getElementById("liveCount").textContent=n;document.getElementById("peopleNow").textContent=n;}
+async function pray(id){
+ const r=await fetch(`/api/room/assignments/${id}/pray`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});
+ const d=await r.json();if(!r.ok){alert(d.error||"Unable to mark prayer.");return;}refresh();
+}
+async function deletePrayer(id){
+ if(!confirm("Delete this prayer? This permanently removes the prayer from the public wall, admin list, reactions, and Prayer Room assignment."))return;
+ const r=await fetch(`/api/prayers/${id}`,{method:"DELETE"});
+ const d=await r.json();if(!r.ok){alert(d.error||"Unable to delete prayer.");return;}refresh();
+}
+document.getElementById("joinForm").addEventListener("submit",async e=>{
+ e.preventDefault();const name=document.getElementById("personName").value.trim();
+ const r=await fetch("/api/room/join",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
+ const d=await r.json();if(!r.ok){document.getElementById("joinError").textContent=d.error||"Unable to enter room.";return;}
+ token=d.token;localStorage.setItem("prayerRoomToken",token);refresh();
+});
+document.getElementById("leave").addEventListener("click",async()=>{try{await fetch("/api/room/leave",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});}catch{}localStorage.removeItem("prayerRoomToken");token=null;showJoin();setRoomCount(0);});
+setInterval(async()=>{if(token){try{await fetch("/api/room/heartbeat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});}catch{} }},3000);
+socket.on("room-count",setRoomCount);
+socket.on("room-presence",d=>setRoomCount(d.count));
+socket.on("prayer-data-changed",refresh);
+socket.on("prayer-deleted",refresh);
+function escapeHtml(x){const d=document.createElement("div");d.textContent=x;return d.innerHTML;}
+refresh();
+</script>
+</body>
+</html>

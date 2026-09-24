@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Public Prayers</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<header class="topbar">
+<div class="brand">🙏 Prayer Room</div>
+<nav>
+<a href="/">Home</a><a href="/request.html">Submit Prayer</a><a class="active" href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a>
+</nav>
+</header>
+<main class="container">
+<section class="page-heading">
+<p class="eyebrow">Public Prayer Requests</p>
+<h1>Prayer Wall</h1>
+<p>Public requests remain here even after they are assigned to someone in the Prayer Room.</p>
+<div class="live"><span></span> <b id="roomCount">0</b> people currently praying</div>
+</section>
+<section id="list" class="prayer-grid"></section>
+</main>
+<script>
+const socket=io();
+let reactionToken=localStorage.getItem("prayerReactionToken");
+if(!reactionToken){reactionToken="browser_"+crypto.randomUUID();localStorage.setItem("prayerReactionToken",reactionToken);}
+async function loadPrayers(){
+ try{
+  const res=await fetch("/api/public/prayers");
+  const prayers=await res.json();
+  const list=document.getElementById("list");
+  if(!prayers.length){list.innerHTML='<div class="card empty">No public prayer requests yet.</div>';return;}
+  list.innerHTML=prayers.map(p=>`
+  <article class="prayer-card">
+   <div class="prayer-meta"><span>🙏 Prayer Request</span><small>🙏 ${p.prayer_count||0} prayed</small></div>
+   <p>${escapeHtml(p.request)}</p>
+   <div class="author">— ${escapeHtml(p.name||"Anonymous")}</div>
+   <div class="actions">
+    <button class="button" onclick="reactPrayer(${p.id})">🙏 I Prayed</button>
+    <button class="button secondary" onclick="deletePrayer(${p.id})">🗑️ Delete</button>
+   </div>
+  </article>`).join("");
+ }catch(e){console.error(e);}
+}
+async function reactPrayer(id){
+ const r=await fetch(`/api/prayers/${id}/react`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({reactorToken:reactionToken})});
+ const d=await r.json();
+ if(!r.ok){alert(d.error||"Unable to react.");return;}
+ loadPrayers();
+}
+async function deletePrayer(id){
+ if(!confirm("Delete this prayer? This permanently removes it, including its Prayer Room assignment and prayer reactions."))return;
+ const r=await fetch(`/api/prayers/${id}`,{method:"DELETE"});
+ const d=await r.json();
+ if(!r.ok){alert(d.error||"Unable to delete prayer.");return;}
+ loadPrayers();
+}
+socket.on("room-count",n=>document.getElementById("roomCount").textContent=n);
+socket.on("prayer-data-changed",loadPrayers);
+socket.on("prayer-deleted",loadPrayers);
+socket.on("room-presence",d=>document.getElementById("roomCount").textContent=d.count);
+function escapeHtml(x){const d=document.createElement("div");d.textContent=x;return d.innerHTML;}
+loadPrayers();
+</script>
+</body>
+</html>
