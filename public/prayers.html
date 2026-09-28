@@ -1,69 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Public Prayers</title>
-<link rel="stylesheet" href="/style.css">
-<script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Public Prayers</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
+
 <body>
-<header class="topbar">
-<div class="brand">🙏 Prayer Room</div>
-<nav>
-<a href="/">Home</a><a href="/request.html">Submit Prayer</a><a class="active" href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a>
-</nav>
-</header>
-<main class="container">
-<section class="page-heading">
-<p class="eyebrow">Public Prayer Requests</p>
-<h1>Prayer Wall</h1>
-<p>Public requests remain here even after they are assigned to someone in the Prayer Room.</p>
-<div class="live"><span></span> <b id="roomCount">0</b> people currently praying</div>
-</section>
-<section id="list" class="prayer-grid"></section>
-</main>
-<script>
-const socket=io();
-let reactionToken=localStorage.getItem("prayerReactionToken");
-if(!reactionToken){reactionToken="browser_"+crypto.randomUUID();localStorage.setItem("prayerReactionToken",reactionToken);}
-async function loadPrayers(){
- try{
-  const res=await fetch("/api/public/prayers");
-  const prayers=await res.json();
-  const list=document.getElementById("list");
-  if(!prayers.length){list.innerHTML='<div class="card empty">No public prayer requests yet.</div>';return;}
-  list.innerHTML=prayers.map(p=>`
-  <article class="prayer-card">
-   <div class="prayer-meta"><span>🙏 Prayer Request</span><small>🙏 ${p.prayer_count||0} prayed</small></div>
-   <p>${escapeHtml(p.request)}</p>
-   <div class="author">— ${escapeHtml(p.name||"Anonymous")}</div>
-   <div class="actions">
-    <button class="button" onclick="reactPrayer(${p.id})">🙏 I Prayed</button>
-    <button class="button secondary" onclick="deletePrayer(${p.id})">🗑️ Delete</button>
-   </div>
-  </article>`).join("");
- }catch(e){console.error(e);}
-}
-async function reactPrayer(id){
- const r=await fetch(`/api/prayers/${id}/react`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({reactorToken:reactionToken})});
- const d=await r.json();
- if(!r.ok){alert(d.error||"Unable to react.");return;}
- loadPrayers();
-}
-async function deletePrayer(id){
- if(!confirm("Delete this prayer? This permanently removes it, including its Prayer Room assignment and prayer reactions."))return;
- const r=await fetch(`/api/prayers/${id}`,{method:"DELETE"});
- const d=await r.json();
- if(!r.ok){alert(d.error||"Unable to delete prayer.");return;}
- loadPrayers();
-}
-socket.on("room-count",n=>document.getElementById("roomCount").textContent=n);
-socket.on("prayer-data-changed",loadPrayers);
-socket.on("prayer-deleted",loadPrayers);
-socket.on("room-presence",d=>document.getElementById("roomCount").textContent=d.count);
-function escapeHtml(x){const d=document.createElement("div");d.textContent=x;return d.innerHTML;}
-loadPrayers();
-</script>
+    <header>
+        <div class="header-inner">
+            <div class="brand">🙏 Prayer Room</div>
+            <nav><a href="/">Home</a><a href="/request.html">Submit Prayer</a><a class="active"
+                    href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a>
+                    </nav>
+        </div>
+    </header>
+    <main class="container">
+        <div class="eyebrow">Community prayers</div>
+        <h1>Public Prayers</h1>
+        
+        <div class="section-title">
+            <h2>🙏 Active Prayers</h2><span id="activeCount"></span>
+        </div>
+        <div id="activeList" class="grid"></div>
+        <div class="section-title">
+            <h2>✅ Answered Prayers</h2><span id="answeredCount"></span>
+        </div>
+        <div id="answeredList" class="grid"></div>
+    </main>
+    <script>const socket = io(); let reactorToken = localStorage.getItem('prayerReactorToken'); if (!reactorToken) { reactorToken = 'web_' + crypto.randomUUID(); localStorage.setItem('prayerReactorToken', reactorToken) } function esc(x) { const d = document.createElement('div'); d.textContent = x ?? ''; return d.innerHTML } function date(x) { return new Date(x).toLocaleString() } function card(p) { const a = Boolean(p.answered_at); return `<article class="card prayer-card ${a ? 'answered' : ''}"><div class="meta"><span>${a ? '✅ Answered Prayer' : '🙏 Prayer Request'}</span><small>🙏 ${p.prayer_count}</small></div><p>${esc(p.request)}</p><div class="author">— ${esc(p.name || 'Anonymous')}<br><small>${date(p.created_at)}</small></div>${a ? `<div class="success">Answered on ${date(p.answered_at)}</div>` : `<div class="admin-actions"><button class="button" onclick="pray(${p.id},this)">🙏</button><button class="button success-button" onclick="answeredPrayer(${p.id},this)">✅ Mark as Answered</button></div>`}</article>` } async function refresh() { try { const r = await fetch('/api/public/prayers'), ps = await r.json(); if (!r.ok) throw new Error(ps.error); const a = ps.filter(p => !p.answered_at), d = ps.filter(p => p.answered_at); activeCount.textContent = `${a.length} request${a.length === 1 ? '' : 's'}`; answeredCount.textContent = `${d.length} prayer${d.length === 1 ? '' : 's'}`; activeList.innerHTML = a.length ? a.map(card).join('') : '<div class="card empty">There are no active public prayer requests right now.</div>'; answeredList.innerHTML = d.length ? d.map(card).join('') : '<div class="card empty">No answered prayers yet.</div>' } catch (e) { activeList.innerHTML = `<div class="card empty">${esc(e.message)}</div>` } } async function pray(id, b) { b.disabled = true; try { const r = await fetch('/api/prayers/' + id + '/react', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reactorToken }) }); const d = await r.json(); if (!r.ok) throw new Error(d.error) } catch (e) { alert(e.message) } finally { b.disabled = false } } async function answeredPrayer(id, b) { if (!confirm('Mark this prayer as answered? It will move to Answered Prayers.')) return; b.disabled = true; try { const r = await fetch('/api/prayers/' + id + '/answered', { method: 'POST' }); const d = await r.json(); if (!r.ok) throw new Error(d.error) } catch (e) { alert(e.message); b.disabled = false } } socket.on('prayer-data-changed', refresh); socket.on('prayerDeleted', refresh); refresh();</script>
 </body>
+
 </html>

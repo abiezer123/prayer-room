@@ -1,25 +1,46 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prayer Room</title>
-<link rel="stylesheet" href="/style.css">
-<script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Prayer Room</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
+
 <body>
-<header class="topbar"><div class="brand">🙏 Prayer Room</div><nav><a class="active" href="/">Home</a><a href="/request.html">Submit Prayer</a><a href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a></nav></header>
-<main class="container">
-<section class="hero"><div><p class="eyebrow">Empire Church</p><h1>Jeremias 33:3</h1><p>“Tumawag ka sa akin, at sasagutin kita, 
+    <header>
+        <div class="header-inner">
+            <div class="brand">🙏 Empire Church</div>
+            <nav><a class="active" href="/">Home</a><a href="/request.html">Submit Prayer</a><a
+                    href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a>
+                    </nav>
+        </div>
+    </header>
+    <main class="container">
+        <section class="hero">
+            <div class="eyebrow"></div>
+            <h1>Jeremias 33:3</h1>
+            <p>“Tumawag ka sa akin, at sasagutin kita, 
             at ipakikita ko sa iyo ang mga dakilang bagay, 
-            at mahirap na mga bagay, na hindi mo nalalaman.”</p><div class="actions"><a class="button" href="/request.html">Submit a Prayer</a><a class="button secondary" href="/room.html">Enter Prayer Room</a></div></div></section>
-<section class="stats"><div class="stat"><strong id="prayers">0</strong><span>Public Prayer Requests</span></div><div class="stat"><strong id="people">0</strong><span>People in Room</span></div><div class="stat"><strong id="prayed">0</strong><span>Prayers Marked Prayed</span></div></section>
-<section class="card"><h2>How it works</h2><div class="steps"><div><b>1</b><h3>Submit</h3><p>Someone submits a public or private prayer request.</p></div><div><b>2</b><h3>Join</h3><p>People enter the realtime Prayer Room.</p></div><div><b>3</b><h3>Assign</h3><p>Public requests are assigned without removing them from the public wall.</p></div><div><b>4</b><h3>Pray</h3><p>Press “I Prayed” after praying for an assigned request.</p></div></div></section>
-</main>
-<script>
-const socket=io();
-async function loadStats(){try{const r=await fetch("/api/public/stats");const d=await r.json();document.getElementById("prayers").textContent=d.prayerCount;document.getElementById("people").textContent=d.roomCount;document.getElementById("prayed").textContent=d.prayedCount;}catch(e){}}
-socket.on("room-count",n=>document.getElementById("people").textContent=n);socket.on("room-presence",d=>document.getElementById("people").textContent=d.count);socket.on("prayer-data-changed",loadStats);socket.on("prayer-deleted",loadStats);loadStats();
-</script>
+            at mahirap na mga bagay, na hindi mo nalalaman.</p>
+              <p><a class="button" href="/request.html">Submit a Prayer</a> <a class="button secondary"
+                    href="/room.html">Enter Prayer Room</a></p>
+        </section>
+        <div class="stats">
+            <div class="stat"><strong id="active">0</strong><span>Active public prayers</span></div>
+            <div class="stat"><strong id="answered">0</strong><span>Answered prayers</span></div>
+            <div class="stat"><strong id="room">0</strong><span>People praying now</span></div>
+        </div>
+        <section class="card">
+            <h2>Prayer Room</h2>
+           
+            <p><strong id="room2">0</strong> people are praying right now.</p><a class="button" href="/room.html">Enter
+                the Prayer Room</a>
+        </section>
+    </main>
+    <script>const socket = io(); async function refresh() { const r = await fetch('/api/public/stats'); if (!r.ok) return; const d = await r.json(); active.textContent = d.activePrayers; answered.textContent = d.answeredPrayers; room.textContent = d.roomCount; room2.textContent = d.roomCount; prayed.textContent = d.prayedCount } socket.on('room-count', n => { room.textContent = n; room2.textContent = n }); socket.on('prayer-data-changed', refresh); refresh();</script>
 </body>
+
 </html>

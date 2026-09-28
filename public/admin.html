@@ -1,33 +1,1297 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prayer Admin</title>
-<link rel="stylesheet" href="/style.css">
-<script src="/socket.io/socket.io.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Prayer Admin</title>
+
+  <link rel="stylesheet" href="/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    /* ===============================
+       ADMIN PAGE
+       =============================== */
+
+    .admin-prayer-text {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      line-height: 1.65;
+      margin: 12px 0;
+    }
+
+    .admin-card {
+      min-width: 0;
+      align-content: start;
+    }
+
+    .admin-card h3 {
+      overflow-wrap: anywhere;
+      margin: 4px 0;
+    }
+
+    .admin-card .meta {
+      flex-wrap: wrap;
+    }
+
+    .admin-actions {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .admin-error {
+      color: #b42318;
+    }
+
+    .admin-card .prayer-id {
+      color: #747d8d;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+    }
+
+    /* ===============================
+       PRAYER TABS
+       =============================== */
+
+    .prayer-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 24px 0 18px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      padding-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .prayer-tab {
+      border: none;
+      background: transparent;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+      color: #666;
+      transition: 0.2s ease;
+    }
+
+    .prayer-tab:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .prayer-tab.active {
+      background: #222;
+      color: white;
+    }
+
+    .prayer-tab .tab-count {
+      opacity: 0.8;
+      margin-left: 4px;
+      font-size: 0.9em;
+    }
+
+    /* ===============================
+       FILTER STATUS
+       =============================== */
+
+    .filter-status {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #747d8d;
+    }
+
+    /* ===============================
+       ANSWERED CARD
+       =============================== */
+
+    .admin-card.answered {
+      border-left: 4px solid #36a269;
+    }
+
+    .answered-info {
+      margin-top: 8px;
+    }
+
+    /* ===============================
+       MOBILE
+       =============================== */
+
+    @media (max-width: 700px) {
+      .prayer-tabs {
+        width: 100%;
+      }
+
+      .prayer-tab {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      .admin-actions {
+        flex-direction: column;
+      }
+
+      .admin-actions .button {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<header class="topbar"><div class="brand">🙏 Prayer Admin</div><nav><a href="/">Home</a><a href="/request.html">Submit Prayer</a><a href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a><a class="active" href="/admin">Admin</a></nav></header>
-<main class="container">
-<section class="page-heading"><p class="eyebrow">Administration</p><h1>Prayer Dashboard</h1><p>Public and private prayers are shown here. Deleting a prayer permanently removes its reactions and Prayer Room assignment.</p></section>
-<section class="stats"><div class="stat"><strong id="all">0</strong><span>All</span></div><div class="stat"><strong id="public">0</strong><span>Public</span></div><div class="stat"><strong id="private">0</strong><span>Private</span></div><div class="stat"><strong id="room">0</strong><span>In Room</span></div></section>
-<section class="card filters">
-<div class="filter-row"><select id="visibility"><option value="all">All</option><option value="public">Public</option><option value="private">Private</option></select><select id="sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="most_prayed">Most Prayed</option></select><input id="date" type="date"><input id="search" placeholder="Search prayer or name"><button class="button" onclick="loadAll()">Search</button></div>
-</section>
-<section id="participants" class="card"><h2>People Currently in Prayer Room</h2><div id="peopleList">Loading...</div></section>
-<section id="prayers" class="prayer-grid"></section>
-</main>
-<script>
-const socket=io();
-async function loadStats(){const r=await fetch("/api/admin/stats");if(!r.ok)return;const d=await r.json();for(const k of ["all","public","private","room"])document.getElementById(k).textContent=d[k];}
-async function loadParticipants(){const r=await fetch("/api/admin/participants");if(!r.ok)return;const d=await r.json();document.getElementById("peopleList").innerHTML=d.length?d.map(p=>`<span class="badge">🙏 ${escapeHtml(p.name)}</span>`).join(" "):"<span class='muted'>No one is currently in the Prayer Room.</span>";}
-async function loadPrayers(){const q=new URLSearchParams({visibility:document.getElementById("visibility").value,sort:document.getElementById("sort").value,date:document.getElementById("date").value,search:document.getElementById("search").value});const r=await fetch("/api/admin/prayers?"+q);if(!r.ok){document.getElementById("prayers").innerHTML='<div class="card error">Admin authentication is required. Refresh and enter the configured credentials.</div>';return;}const d=await r.json();document.getElementById("prayers").innerHTML=d.length?d.map(p=>`<article class="prayer-card"><div class="prayer-meta"><span>${p.visibility==='private'?'🔒 Private':'🌐 Public'}</span><small>🙏 ${p.prayer_count||0} prayed</small></div><p>${escapeHtml(p.request)}</p><div class="author">— ${escapeHtml(p.name||'Anonymous')}</div><small>${new Date(p.created_at).toLocaleString()}</small><div class="actions"><button class="button secondary" onclick="deletePrayer(${p.id})">🗑️ Delete Prayer</button></div></article>`).join(""):'<div class="card empty">No prayers match your filters.</div>';}
-async function loadAll(){await Promise.all([loadStats(),loadParticipants(),loadPrayers()]);}
-async function deletePrayer(id){if(!confirm("Delete this prayer permanently? This removes the prayer, reactions, and Prayer Room assignment."))return;const r=await fetch(`/api/prayers/${id}`,{method:"DELETE"});const d=await r.json();if(!r.ok){alert(d.error||"Unable to delete prayer.");return;}loadAll();}
-socket.on("room-count",loadAll);socket.on("room-presence",loadAll);socket.on("prayer-data-changed",loadAll);socket.on("prayer-deleted",loadAll);
-function escapeHtml(x){const d=document.createElement("div");d.textContent=x;return d.innerHTML;}
-loadAll();
-</script>
+
+  <header>
+    <div class="header-inner">
+
+      <div class="brand">
+        🙏 Prayer Admin
+      </div>
+
+      <nav>
+        <a href="/">Home</a>
+        <a href="/request.html">Submit Prayer</a>
+        <a href="/prayers.html">Public Prayers</a>
+        <a href="/room.html">Prayer Room</a>
+      </nav>
+
+    </div>
+  </header>
+
+
+  <main class="container">
+
+    <div class="eyebrow">
+      Administrator
+    </div>
+
+    <h1>
+      Prayer Dashboard
+    </h1>
+
+    <div class="notice">
+      All public and private prayer requests are managed here.
+      Answered prayers are kept separately from active prayers.
+      Only the administrator can permanently delete a prayer.
+    </div>
+
+
+    <!-- ===============================
+         STATISTICS
+         =============================== -->
+
+    <div class="stats">
+
+      <div class="stat">
+        <strong id="allCount">0</strong>
+        <span>All</span>
+      </div>
+
+      <div class="stat">
+        <strong id="publicCount">0</strong>
+        <span>Public</span>
+      </div>
+
+      <div class="stat">
+        <strong id="privateCount">0</strong>
+        <span>Private</span>
+      </div>
+
+      <div class="stat">
+        <strong id="activeCount">0</strong>
+        <span>Active</span>
+      </div>
+
+      <div class="stat">
+        <strong id="answeredCount">0</strong>
+        <span>Answered</span>
+      </div>
+
+      <div class="stat">
+        <strong id="roomCount">0</strong>
+        <span>In Prayer Room</span>
+      </div>
+
+    </div>
+
+
+    <!-- ===============================
+         FILTERS
+         =============================== -->
+
+    <section class="card">
+
+      <h2>
+        Find Prayer Requests
+      </h2>
+
+      <div class="toolbar">
+
+        <!-- Visibility -->
+        <select id="visibility" aria-label="Filter by visibility">
+          <option value="all">All visibility</option>
+          <option value="public">Public only</option>
+          <option value="private">Private only</option>
+        </select>
+
+
+        <!-- Sorting -->
+        <select id="sort" aria-label="Sort prayers">
+
+          <option value="newest">
+            Newest first
+          </option>
+
+          <option value="oldest">
+            Oldest first
+          </option>
+
+          <option value="most_prayed">
+            Most prayed
+          </option>
+
+          <option value="least_prayed">
+            Least prayed
+          </option>
+
+        </select>
+
+
+        <!-- Date -->
+        <input
+          id="date"
+          type="date"
+          aria-label="Filter by submission date"
+        >
+
+
+        <!-- Search -->
+        <input
+          id="search"
+          type="search"
+          placeholder="Search name or prayer"
+          aria-label="Search name or prayer"
+        >
+
+
+        <!-- Reset -->
+        <button
+          id="resetButton"
+          class="button secondary"
+          type="button"
+        >
+          Reset Filters
+        </button>
+
+      </div>
+
+      <div id="filterStatus" class="filter-status">
+        Filters update automatically.
+      </div>
+
+    </section>
+
+
+    <!-- ===============================
+         TABS
+         =============================== -->
+
+    <div class="prayer-tabs">
+
+      <button
+        id="activeTab"
+        class="prayer-tab active"
+        type="button"
+        data-tab="active"
+      >
+        🟢 Active Prayers
+        <span id="activeTabCount" class="tab-count">(0)</span>
+      </button>
+
+
+      <button
+        id="answeredTab"
+        class="prayer-tab"
+        type="button"
+        data-tab="answered"
+      >
+        ✅ Answered Prayers
+        <span id="answeredTabCount" class="tab-count">(0)</span>
+      </button>
+
+    </div>
+
+
+    <!-- ===============================
+         ACTIVE PRAYERS
+         =============================== -->
+
+    <section id="activeSection">
+
+      <div class="section-title">
+
+        <h2>
+          🟢 Active Prayers
+        </h2>
+
+        <button
+          id="refreshButton"
+          class="button secondary"
+          type="button"
+        >
+          Refresh
+        </button>
+
+      </div>
+
+      <div id="activeList" class="grid">
+
+        <div class="card empty">
+          Loading active prayers…
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===============================
+         ANSWERED PRAYERS
+         =============================== -->
+
+    <section id="answeredSection" style="display: none;">
+
+      <div class="section-title">
+
+        <h2>
+          ✅ Answered Prayers
+        </h2>
+
+        <button
+          id="answeredRefreshButton"
+          class="button secondary"
+          type="button"
+        >
+          Refresh
+        </button>
+
+      </div>
+
+      <div id="answeredList" class="grid">
+
+        <div class="card empty">
+          Loading answered prayers…
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===============================
+         PEOPLE IN PRAYER ROOM
+         =============================== -->
+
+    <div class="section-title">
+
+      <h2>
+        People in Prayer Room
+      </h2>
+
+    </div>
+
+    <div id="participants" class="grid">
+
+      <div class="card empty">
+        Loading participants…
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <script>
+
+    (() => {
+
+      const socket = io();
+
+
+      /* ==========================================
+         HELPERS
+         ========================================== */
+
+      const el = id => document.getElementById(id);
+
+
+      const escapeHtml = value => {
+
+        const d = document.createElement("div");
+
+        d.textContent =
+          value == null
+            ? ""
+            : String(value);
+
+        return d.innerHTML;
+
+      };
+
+
+      const formatDate = value => {
+
+        return value
+          ? new Date(value).toLocaleString()
+          : "—";
+
+      };
+
+
+      async function api(url, options = {}) {
+
+        const response =
+          await fetch(url, options);
+
+        let data = {};
+
+        try {
+
+          data =
+            await response.json();
+
+        } catch (_) {
+
+        }
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            data.detail ||
+            `Request failed (${response.status})`
+          );
+
+        }
+
+        return data;
+
+      }
+
+
+      /* ==========================================
+         CURRENT TAB
+         ========================================== */
+
+      let currentTab = "active";
+
+
+      /* ==========================================
+         LOAD STATISTICS
+         ========================================== */
+
+      async function loadStats() {
+
+        try {
+
+          const data =
+            await api("/api/admin/stats");
+
+
+          el("allCount").textContent =
+            data.all ?? 0;
+
+          el("publicCount").textContent =
+            data.public ?? 0;
+
+          el("privateCount").textContent =
+            data.private ?? 0;
+
+          el("activeCount").textContent =
+            data.active ?? 0;
+
+          el("answeredCount").textContent =
+            data.answered ?? 0;
+
+          el("roomCount").textContent =
+            data.room ?? 0;
+
+
+          el("activeTabCount").textContent =
+            `(${data.active ?? 0})`;
+
+          el("answeredTabCount").textContent =
+            `(${data.answered ?? 0})`;
+
+        } catch (error) {
+
+          console.error(
+            "Could not load admin stats:",
+            error
+          );
+
+        }
+
+      }
+
+
+      /* ==========================================
+         BUILD QUERY
+         ========================================== */
+
+      function getFilterQuery(status) {
+
+        return new URLSearchParams({
+
+          visibility:
+            el("visibility").value,
+
+          answered:
+            status,
+
+          sort:
+            el("sort").value,
+
+          date:
+            el("date").value,
+
+          search:
+            el("search").value.trim()
+
+        });
+
+      }
+
+
+      /* ==========================================
+         PRAYER CARD
+         ========================================== */
+
+      function prayerCard(prayer) {
+
+        const answered =
+          Boolean(prayer.answered_at);
+
+        const prayerCount =
+          Number(prayer.prayer_count || 0);
+
+
+        return `
+
+          <article
+            class="card admin-card ${answered ? "answered" : ""}"
+          >
+
+            <div class="meta">
+
+              <span>
+
+                <span class="badge ${escapeHtml(prayer.visibility)}">
+                  ${escapeHtml(prayer.visibility)}
+                </span>
+
+                <span class="badge ${answered ? "answered" : ""}">
+                  ${answered ? "answered" : "active"}
+                </span>
+
+              </span>
+
+
+              <small>
+                🙏 ${prayerCount} prayers
+              </small>
+
+            </div>
+
+
+            <div class="prayer-id">
+              Prayer ID: ${escapeHtml(prayer.id)}
+            </div>
+
+
+            <h3>
+              ${escapeHtml(prayer.name || "Anonymous")}
+            </h3>
+
+
+            <div class="admin-prayer-text">
+              ${escapeHtml(prayer.request)}
+            </div>
+
+
+            <small>
+              Submitted:
+              ${escapeHtml(formatDate(prayer.created_at))}
+            </small>
+
+
+            ${
+              answered
+                ? `
+                  <div class="success answered-info">
+                    ✅ Answered:
+                    ${escapeHtml(formatDate(prayer.answered_at))}
+                  </div>
+                `
+                : ""
+            }
+
+
+            <div class="admin-actions">
+
+              ${
+                answered
+                  ? `
+                    <button
+                      class="button secondary"
+                      type="button"
+                      data-action="toggle"
+                      data-id="${escapeHtml(prayer.id)}"
+                    >
+                      ↩ Mark Active
+                    </button>
+                  `
+                  : `
+                    <button
+                      class="button success-button"
+                      type="button"
+                      data-action="toggle"
+                      data-id="${escapeHtml(prayer.id)}"
+                    >
+                      ✅ Mark Answered
+                    </button>
+                  `
+              }
+
+
+              <button
+                class="button danger"
+                type="button"
+                data-action="delete"
+                data-id="${escapeHtml(prayer.id)}"
+              >
+                🗑️ Delete Permanently
+              </button>
+
+            </div>
+
+          </article>
+
+        `;
+
+      }
+
+
+      /* ==========================================
+         LOAD ONE TAB
+         ========================================== */
+
+      async function loadTab(status) {
+
+        const target =
+          status === "active"
+            ? el("activeList")
+            : el("answeredList");
+
+
+        target.innerHTML = `
+
+          <div class="card empty">
+            Loading ${status} prayers…
+          </div>
+
+        `;
+
+
+        try {
+
+          const query =
+            getFilterQuery(status);
+
+
+          const prayers =
+            await api(
+              "/api/admin/prayers?" +
+              query.toString()
+            );
+
+
+          if (status === "active") {
+
+            el("activeTabCount").textContent =
+              `(${prayers.length})`;
+
+          } else {
+
+            el("answeredTabCount").textContent =
+              `(${prayers.length})`;
+
+          }
+
+
+          if (!prayers.length) {
+
+            target.innerHTML = `
+
+              <div class="card empty">
+
+                ${
+                  status === "active"
+                    ? "No active prayers match the current filters."
+                    : "No answered prayers match the current filters."
+                }
+
+              </div>
+
+            `;
+
+            return;
+
+          }
+
+
+          target.innerHTML =
+            prayers
+              .map(prayerCard)
+              .join("");
+
+
+        } catch (error) {
+
+          console.error(
+            `Could not load ${status} prayers:`,
+            error
+          );
+
+
+          target.innerHTML = `
+
+            <div class="card empty admin-error">
+
+              Could not load prayers:
+              ${escapeHtml(error.message)}
+
+            </div>
+
+          `;
+
+        }
+
+      }
+
+
+      /* ==========================================
+         LOAD CURRENT TAB
+         ========================================== */
+
+      async function loadCurrentTab() {
+
+        el("filterStatus").textContent =
+          "Updating prayers…";
+
+
+        await loadTab(currentTab);
+
+
+        el("filterStatus").textContent =
+          "Filters update automatically.";
+
+      }
+
+
+      /* ==========================================
+         LOAD BOTH
+         ========================================== */
+
+      async function loadPrayers() {
+
+        await Promise.all([
+
+          loadTab("active"),
+
+          loadTab("answered")
+
+        ]);
+
+      }
+
+
+      /* ==========================================
+         TAB SWITCHING
+         ========================================== */
+
+      function switchTab(tab) {
+
+        currentTab = tab;
+
+
+        const active =
+          tab === "active";
+
+
+        el("activeTab")
+          .classList.toggle("active", active);
+
+
+        el("answeredTab")
+          .classList.toggle("active", !active);
+
+
+        el("activeSection").style.display =
+          active
+            ? ""
+            : "none";
+
+
+        el("answeredSection").style.display =
+          active
+            ? "none"
+            : "";
+
+
+        loadCurrentTab();
+
+      }
+
+
+      /* ==========================================
+         TOGGLE ANSWERED
+         ========================================== */
+
+      async function toggleAnswered(id) {
+
+        try {
+
+          await api(
+            `/api/admin/prayers/${encodeURIComponent(id)}/toggle-answered`,
+            {
+              method: "POST"
+            }
+          );
+
+
+          await Promise.all([
+
+            loadStats(),
+
+            loadPrayers()
+
+          ]);
+
+        } catch (error) {
+
+          alert(
+            "Could not update prayer status: " +
+            error.message
+          );
+
+        }
+
+      }
+
+
+      /* ==========================================
+         DELETE PRAYER
+         ========================================== */
+
+      async function deletePrayer(id) {
+
+        const confirmed =
+          confirm(
+            `Permanently delete prayer #${id}?\n\n` +
+            `This will also remove:\n` +
+            `• Prayer Room assignment\n` +
+            `• Prayer reactions\n` +
+            `• The prayer itself\n\n` +
+            `This cannot be undone.`
+          );
+
+
+        if (!confirmed) return;
+
+
+        try {
+
+          await api(
+            `/api/admin/prayers/${encodeURIComponent(id)}`,
+            {
+              method: "DELETE"
+            }
+          );
+
+
+          await Promise.all([
+
+            loadStats(),
+
+            loadPrayers(),
+
+            loadParticipants()
+
+          ]);
+
+
+          alert(
+            "Prayer permanently deleted."
+          );
+
+
+        } catch (error) {
+
+          alert(
+            "Could not delete prayer: " +
+            error.message
+          );
+
+        }
+
+      }
+
+
+      /* ==========================================
+         PARTICIPANTS
+         ========================================== */
+
+      async function loadParticipants() {
+
+        const target =
+          el("participants");
+
+
+        try {
+
+          const people =
+            await api(
+              "/api/admin/participants"
+            );
+
+
+          if (!people.length) {
+
+            target.innerHTML = `
+
+              <div class="card empty">
+                No one is currently in the Prayer Room.
+              </div>
+
+            `;
+
+            return;
+
+          }
+
+
+          target.innerHTML =
+            people
+              .map(person => `
+
+                <div class="card">
+
+                  <strong>
+                    ${escapeHtml(person.name)}
+                  </strong>
+
+                  <div class="author">
+
+                    Joined:
+                    ${escapeHtml(
+                      formatDate(person.joined_at)
+                    )}
+
+                  </div>
+
+                </div>
+
+              `)
+              .join("");
+
+
+        } catch (error) {
+
+          target.innerHTML = `
+
+            <div class="card empty admin-error">
+
+              Could not load participants:
+              ${escapeHtml(error.message)}
+
+            </div>
+
+          `;
+
+        }
+
+      }
+
+
+      /* ==========================================
+         REFRESH EVERYTHING
+         ========================================== */
+
+      async function refreshAll() {
+
+        await Promise.all([
+
+          loadStats(),
+
+          loadPrayers(),
+
+          loadParticipants()
+
+        ]);
+
+      }
+
+
+      /* ==========================================
+         FILTER AUTO-UPDATE
+         ========================================== */
+
+      let searchTimer = null;
+
+
+      function filtersChanged() {
+
+        clearTimeout(searchTimer);
+
+
+        searchTimer =
+          setTimeout(() => {
+
+            loadCurrentTab();
+
+          }, 250);
+
+      }
+
+
+      /* ==========================================
+         FILTER EVENTS
+         ========================================== */
+
+      el("visibility")
+        .addEventListener(
+          "change",
+          filtersChanged
+        );
+
+
+      el("sort")
+        .addEventListener(
+          "change",
+          filtersChanged
+        );
+
+
+      el("date")
+        .addEventListener(
+          "change",
+          filtersChanged
+        );
+
+
+      el("search")
+        .addEventListener(
+          "input",
+          filtersChanged
+        );
+
+
+      /* ==========================================
+         RESET FILTERS
+         ========================================== */
+
+      el("resetButton")
+        .addEventListener(
+          "click",
+          () => {
+
+            el("visibility").value =
+              "all";
+
+            el("sort").value =
+              "newest";
+
+            el("date").value =
+              "";
+
+            el("search").value =
+              "";
+
+
+            loadCurrentTab();
+
+          }
+        );
+
+
+      /* ==========================================
+         TAB EVENTS
+         ========================================== */
+
+      el("activeTab")
+        .addEventListener(
+          "click",
+          () => switchTab("active")
+        );
+
+
+      el("answeredTab")
+        .addEventListener(
+          "click",
+          () => switchTab("answered")
+        );
+
+
+      /* ==========================================
+         REFRESH BUTTONS
+         ========================================== */
+
+      el("refreshButton")
+        .addEventListener(
+          "click",
+          loadCurrentTab
+        );
+
+
+      el("answeredRefreshButton")
+        .addEventListener(
+          "click",
+          loadCurrentTab
+        );
+
+
+      /* ==========================================
+         ACTIVE PRAYER BUTTONS
+         ========================================== */
+
+      el("activeList")
+        .addEventListener(
+          "click",
+          event => {
+
+            const button =
+              event.target.closest(
+                "button[data-action]"
+              );
+
+
+            if (!button) return;
+
+
+            const id =
+              button.dataset.id;
+
+
+            if (
+              button.dataset.action ===
+              "toggle"
+            ) {
+
+              toggleAnswered(id);
+
+            }
+
+
+            if (
+              button.dataset.action ===
+              "delete"
+            ) {
+
+              deletePrayer(id);
+
+            }
+
+          }
+        );
+
+
+      /* ==========================================
+         ANSWERED PRAYER BUTTONS
+         ========================================== */
+
+      el("answeredList")
+        .addEventListener(
+          "click",
+          event => {
+
+            const button =
+              event.target.closest(
+                "button[data-action]"
+              );
+
+
+            if (!button) return;
+
+
+            const id =
+              button.dataset.id;
+
+
+            if (
+              button.dataset.action ===
+              "toggle"
+            ) {
+
+              toggleAnswered(id);
+
+            }
+
+
+            if (
+              button.dataset.action ===
+              "delete"
+            ) {
+
+              deletePrayer(id);
+
+            }
+
+          }
+        );
+
+
+      /* ==========================================
+         SOCKET.IO
+         ========================================== */
+
+      socket.on(
+        "prayer-data-changed",
+        refreshAll
+      );
+
+
+      socket.on(
+        "room-count",
+        count => {
+
+          el("roomCount").textContent =
+            count;
+
+          loadParticipants();
+
+        }
+      );
+
+
+      socket.on(
+        "room-participants-changed",
+        loadParticipants
+      );
+
+
+      /* ==========================================
+         INITIAL LOAD
+         ========================================== */
+
+      refreshAll();
+
+    })();
+
+  </script>
+
 </body>
+
 </html>

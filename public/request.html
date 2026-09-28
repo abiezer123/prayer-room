@@ -1,52 +1,42 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Submit Prayer</title>
-<link rel="stylesheet" href="/style.css">
-<script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Submit Prayer</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
-<header class="topbar">
-  <div class="brand">🙏 Prayer Room</div>
-  <nav>
-    <a href="/">Home</a>
-    <a class="active" href="/request.html">Submit Prayer</a>
-    <a href="/prayers.html">Public Prayers</a>
-    <a href="/room.html">Prayer Room</a>
-    <a href="/admin">Admin</a>
-  </nav>
-</header>
-<main class="container narrow">
-<section class="card">
-<p class="eyebrow">Prayer Request</p>
-<h1>What would you like us to pray for?</h1>
-<form id="requestForm">
-<label>Your name <span class="muted">(optional)</span></label>
-<input id="name" placeholder="Your name">
-<label>Prayer request</label>
-<textarea id="request" rows="7" required placeholder="Write your prayer request here..."></textarea>
-<label>Visibility</label>
-<select id="visibility">
-<option value="public">Public — people in the Prayer Room can see it</option>
-<option value="private">Private — only administrators can see it</option>
-</select>
-<button class="button" type="submit">Submit Prayer Request</button>
-<p id="message"></p>
-</form>
-</section>
-</main>
-<script>
-const form=document.getElementById("requestForm");
-const message=document.getElementById("message");
-form.addEventListener("submit",async e=>{
- e.preventDefault();
- const res=await fetch("/api/prayers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:document.getElementById("name").value,request:document.getElementById("request").value,visibility:document.getElementById("visibility").value})});
- const data=await res.json();
- if(!res.ok){message.textContent=data.error||"Something went wrong.";message.className="error";return;}
- form.reset();message.textContent=data.message||"Prayer submitted.";message.className="success";
-});
-</script>
+    <header>
+        <div class="header-inner">
+            <div class="brand">🙏 Prayer Room</div>
+            <nav><a href="/">Home</a><a class="active" href="/request.html">Submit Prayer</a><a
+                    href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a>
+                    </nav>
+        </div>
+    </header>
+    <main class="container">
+        <section class="card narrow-card">
+            <div class="eyebrow">Prayer request</div>
+            <h1>Share a prayer</h1>
+            <p>Your name is optional. Choose whether the request should be public or private.</p>
+            <form id="form">
+                <div><label for="name">Name (optional)</label><input id="name" maxlength="100" placeholder="Anonymous">
+                </div>
+                <div><label for="request">Prayer request</label><textarea id="request" maxlength="3000" required
+                        placeholder="Write your prayer request..."></textarea></div>
+                <div><label>Visibility</label>
+                    <div class="radio-row"><label><input type="radio" name="visibility" value="public" checked>
+                            Public</label><label><input type="radio" name="visibility" value="private"> Private</label>
+                    </div>
+                </div><button class="button" id="submit">Submit Prayer</button>
+                <div id="message"></div>
+            </form>
+        </section>
+    </main>
+    <script>form.addEventListener('submit', async e => { e.preventDefault(); submit.disabled = true; message.textContent = 'Submitting...'; try { const visibility = document.querySelector('input[name="visibility"]:checked').value; const r = await fetch('/api/prayers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.value, request: request.value, visibility }) }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Unable to submit prayer.'); message.className = 'success'; message.textContent = d.message; form.reset(); document.querySelector('input[value="public"]').checked = true } catch (e) { message.className = ''; message.textContent = e.message } finally { submit.disabled = false } });</script>
 </body>
+
 </html>
