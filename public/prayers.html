@@ -3,35 +3,1178 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>Public Prayers</title>
+
     <link rel="stylesheet" href="/style.css">
     <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        /* ===============================
+           PRAYER TABS
+        =============================== */
+
+        .prayer-tabs {
+            display: flex;
+            gap: 8px;
+            margin: 24px 0 18px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            padding-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .prayer-tab {
+            border: none;
+            background: transparent;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 600;
+            color: #666;
+            transition: 0.2s ease;
+        }
+
+        .prayer-tab:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .prayer-tab.active {
+            background: #222;
+            color: white;
+        }
+
+        .tab-count {
+            opacity: 0.8;
+            margin-left: 4px;
+            font-size: 0.9em;
+        }
+
+
+        /* ===============================
+           SORTING
+        =============================== */
+
+        .prayer-sort {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .prayer-sort label {
+            font-weight: 600;
+        }
+
+        .prayer-sort select {
+            padding: 9px 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            font: inherit;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        .prayer-sort select:focus {
+            outline: none;
+            border-color: #777;
+        }
+
+
+        /* ===============================
+           PRAYER CARD
+        =============================== */
+
+        .prayer-card p {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.65;
+        }
+
+        .prayer-card.answered {
+            border-left: 4px solid #36a269;
+        }
+
+        .answered-info {
+            margin-top: 10px;
+        }
+
+
+        /* ===============================
+           MOBILE
+        =============================== */
+
+        @media (max-width: 700px) {
+
+            .prayer-tabs {
+                width: 100%;
+            }
+
+            .prayer-tab {
+                flex: 1;
+                min-width: 140px;
+            }
+
+            .prayer-sort {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .prayer-sort select {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 
+
 <body>
+
+    <!-- ===============================
+         HEADER
+    =============================== -->
+
     <header>
+
         <div class="header-inner">
-            <div class="brand">🙏 Prayer Room</div>
-            <nav><a href="/">Home</a><a href="/request.html">Submit Prayer</a><a class="active"
-                    href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a>
-                    </nav>
+
+            <div class="brand">
+                🙏 Empire Church
+            </div>
+
+            <nav>
+
+                <a href="/">
+                    Home
+                </a>
+
+                <a href="/request.html">
+                    Submit Prayer
+                </a>
+
+                <a class="active" href="/prayers.html">
+                    Public Prayers
+                </a>
+
+                <a href="/room.html">
+                    Prayer Room
+                </a>
+
+            </nav>
+
         </div>
+
     </header>
+
+
+    <!-- ===============================
+         MAIN CONTENT
+    =============================== -->
+
     <main class="container">
-        <div class="eyebrow">Community prayers</div>
-        <h1>Public Prayers</h1>
-        
-        <div class="section-title">
-            <h2>🙏 Active Prayers</h2><span id="activeCount"></span>
+
+        <div class="eyebrow">
+            Community prayers
         </div>
-        <div id="activeList" class="grid"></div>
-        <div class="section-title">
-            <h2>✅ Answered Prayers</h2><span id="answeredCount"></span>
+
+        <h1>
+            Public Prayers
+        </h1>
+
+        <p>
+            Pray with others and see how God is working through
+            answered prayers.
+        </p>
+
+
+        <!-- ===============================
+             TABS
+        =============================== -->
+
+        <div class="prayer-tabs">
+
+            <button
+                id="activeTab"
+                class="prayer-tab active"
+                type="button"
+            >
+                🙏 Active Prayers
+
+                <span
+                    id="activeCount"
+                    class="tab-count"
+                >
+                    (0)
+                </span>
+            </button>
+
+
+            <button
+                id="answeredTab"
+                class="prayer-tab"
+                type="button"
+            >
+                ✅ Answered Prayers
+
+                <span
+                    id="answeredCount"
+                    class="tab-count"
+                >
+                    (0)
+                </span>
+            </button>
+
         </div>
-        <div id="answeredList" class="grid"></div>
+
+
+        <!-- ===============================
+             SORTING
+        =============================== -->
+
+        <div class="prayer-sort">
+
+            <label for="sortSelect">
+                Sort by:
+            </label>
+
+            <select id="sortSelect">
+
+                <option value="newest">
+                    Newest First
+                </option>
+
+                <option value="oldest">
+                    Oldest First
+                </option>
+
+                <option value="most_prayed">
+                    Most Prayed
+                </option>
+
+                <option value="least_prayed">
+                    Least Prayed
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- ===============================
+             ACTIVE PRAYERS
+        =============================== -->
+
+        <section id="activeSection">
+
+            <div class="section-title">
+
+                <h2>
+                    🙏 Active Prayers
+                </h2>
+
+            </div>
+
+
+            <div
+                id="activeList"
+                class="grid"
+            >
+
+                <div class="card empty">
+                    Loading active prayers…
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ===============================
+             ANSWERED PRAYERS
+        =============================== -->
+
+        <section
+            id="answeredSection"
+            style="display: none;"
+        >
+
+            <div class="section-title">
+
+                <h2>
+                    ✅ Answered Prayers
+                </h2>
+
+            </div>
+
+
+            <div
+                id="answeredList"
+                class="grid"
+            >
+
+                <div class="card empty">
+                    Loading answered prayers…
+                </div>
+
+            </div>
+
+        </section>
+
     </main>
-    <script>const socket = io(); let reactorToken = localStorage.getItem('prayerReactorToken'); if (!reactorToken) { reactorToken = 'web_' + crypto.randomUUID(); localStorage.setItem('prayerReactorToken', reactorToken) } function esc(x) { const d = document.createElement('div'); d.textContent = x ?? ''; return d.innerHTML } function date(x) { return new Date(x).toLocaleString() } function card(p) { const a = Boolean(p.answered_at); return `<article class="card prayer-card ${a ? 'answered' : ''}"><div class="meta"><span>${a ? '✅ Answered Prayer' : '🙏 Prayer Request'}</span><small>🙏 ${p.prayer_count}</small></div><p>${esc(p.request)}</p><div class="author">— ${esc(p.name || 'Anonymous')}<br><small>${date(p.created_at)}</small></div>${a ? `<div class="success">Answered on ${date(p.answered_at)}</div>` : `<div class="admin-actions"><button class="button" onclick="pray(${p.id},this)">🙏</button><button class="button success-button" onclick="answeredPrayer(${p.id},this)">✅ Mark as Answered</button></div>`}</article>` } async function refresh() { try { const r = await fetch('/api/public/prayers'), ps = await r.json(); if (!r.ok) throw new Error(ps.error); const a = ps.filter(p => !p.answered_at), d = ps.filter(p => p.answered_at); activeCount.textContent = `${a.length} request${a.length === 1 ? '' : 's'}`; answeredCount.textContent = `${d.length} prayer${d.length === 1 ? '' : 's'}`; activeList.innerHTML = a.length ? a.map(card).join('') : '<div class="card empty">There are no active public prayer requests right now.</div>'; answeredList.innerHTML = d.length ? d.map(card).join('') : '<div class="card empty">No answered prayers yet.</div>' } catch (e) { activeList.innerHTML = `<div class="card empty">${esc(e.message)}</div>` } } async function pray(id, b) { b.disabled = true; try { const r = await fetch('/api/prayers/' + id + '/react', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reactorToken }) }); const d = await r.json(); if (!r.ok) throw new Error(d.error) } catch (e) { alert(e.message) } finally { b.disabled = false } } async function answeredPrayer(id, b) { if (!confirm('Mark this prayer as answered? It will move to Answered Prayers.')) return; b.disabled = true; try { const r = await fetch('/api/prayers/' + id + '/answered', { method: 'POST' }); const d = await r.json(); if (!r.ok) throw new Error(d.error) } catch (e) { alert(e.message); b.disabled = false } } socket.on('prayer-data-changed', refresh); socket.on('prayerDeleted', refresh); refresh();</script>
+
+
+    <!-- ===============================
+         JAVASCRIPT
+    =============================== -->
+
+    <script>
+
+        /* ===============================
+           SOCKET.IO
+        =============================== */
+
+        const socket = io();
+
+
+        /* ===============================
+           REACTOR TOKEN
+        =============================== */
+
+        let reactorToken =
+            localStorage.getItem(
+                "prayerReactorToken"
+            );
+
+
+        if (!reactorToken) {
+
+            reactorToken =
+                "web_" +
+                crypto.randomUUID();
+
+            localStorage.setItem(
+                "prayerReactorToken",
+                reactorToken
+            );
+
+        }
+
+
+        /* ===============================
+           HELPER
+        =============================== */
+
+        const el = id =>
+            document.getElementById(id);
+
+
+        /* ===============================
+           ESCAPE HTML
+        =============================== */
+
+        function esc(value) {
+
+            const d =
+                document.createElement("div");
+
+            d.textContent =
+                value ?? "";
+
+            return d.innerHTML;
+        }
+
+
+        /* ===============================
+           DATE FORMAT
+        =============================== */
+
+        function date(value) {
+
+            return new Date(
+                value
+            ).toLocaleString();
+
+        }
+
+
+        /* ===============================
+           CURRENT TAB
+        =============================== */
+
+        let currentTab = "active";
+
+
+        /* ===============================
+           PRAYER CARD
+        =============================== */
+
+        function card(prayer) {
+
+            const answered =
+                Boolean(
+                    prayer.answered_at
+                );
+
+
+            return `
+
+                <article
+                    class="card prayer-card ${answered ? "answered" : ""}"
+                >
+
+                    <div class="meta">
+
+                        <span>
+
+                            ${
+                                answered
+                                    ? "✅ Answered Prayer"
+                                    : "🙏 Prayer Request"
+                            }
+
+                        </span>
+
+
+                        <small>
+
+                            🙏
+                            ${Number(
+                                prayer.prayer_count || 0
+                            )}
+
+                        </small>
+
+                    </div>
+
+
+                    <p>${esc(prayer.request)}</p>
+
+
+                    <div class="author">
+
+                        —
+                        ${esc(
+                            prayer.name ||
+                            "Anonymous"
+                        )}
+
+                        <br>
+
+                        <small>
+
+                            ${esc(
+                                date(
+                                    prayer.created_at
+                                )
+                            )}
+
+                        </small>
+
+                    </div>
+
+
+                    ${
+                        answered
+
+                            ?
+
+                            `
+
+                                <div
+                                    class="success answered-info"
+                                >
+
+                                    ✅ Answered on
+
+                                    ${esc(
+                                        date(
+                                            prayer.answered_at
+                                        )
+                                    )}
+
+                                </div>
+
+                            `
+
+                            :
+
+                            `
+
+                                <div
+                                    class="admin-actions"
+                                >
+
+                                    <button
+                                        class="button"
+                                        type="button"
+                                        onclick="pray(
+                                            ${prayer.id},
+                                            this
+                                        )"
+                                    >
+
+                                        🙏 
+
+                                    </button>
+
+
+                                    <button
+                                        class="button success-button"
+                                        type="button"
+                                        onclick="answeredPrayer(
+                                            ${prayer.id},
+                                            this
+                                        )"
+                                    >
+
+                                        ✅ Mark as Answered
+
+                                    </button>
+
+                                </div>
+
+                            `
+                    }
+
+                </article>
+
+            `;
+
+        }
+
+
+        /* ===============================
+           SORT PRAYERS
+        =============================== */
+
+        function sortPrayers(list) {
+
+            const sortBy =
+                el("sortSelect").value;
+
+
+            return [...list].sort(
+                (a, b) => {
+
+                    /*
+                     * NEWEST FIRST
+                     */
+
+                    if (
+                        sortBy === "newest"
+                    ) {
+
+                        return (
+                            new Date(
+                                b.created_at
+                            ) -
+
+                            new Date(
+                                a.created_at
+                            )
+                        );
+
+                    }
+
+
+                    /*
+                     * OLDEST FIRST
+                     */
+
+                    if (
+                        sortBy === "oldest"
+                    ) {
+
+                        return (
+                            new Date(
+                                a.created_at
+                            ) -
+
+                            new Date(
+                                b.created_at
+                            )
+                        );
+
+                    }
+
+
+                    /*
+                     * MOST PRAYED
+                     */
+
+                    if (
+                        sortBy === "most_prayed"
+                    ) {
+
+                        const prayerDifference =
+                            Number(
+                                b.prayer_count || 0
+                            ) -
+
+                            Number(
+                                a.prayer_count || 0
+                            );
+
+
+                        /*
+                         * If prayer counts
+                         * are equal, show
+                         * newest first.
+                         */
+
+                        if (
+                            prayerDifference !== 0
+                        ) {
+
+                            return prayerDifference;
+
+                        }
+
+
+                        return (
+                            new Date(
+                                b.created_at
+                            ) -
+
+                            new Date(
+                                a.created_at
+                            )
+                        );
+
+                    }
+
+
+                    /*
+                     * LEAST PRAYED
+                     */
+
+                    if (
+                        sortBy === "least_prayed"
+                    ) {
+
+                        const prayerDifference =
+                            Number(
+                                a.prayer_count || 0
+                            ) -
+
+                            Number(
+                                b.prayer_count || 0
+                            );
+
+
+                        /*
+                         * If prayer counts
+                         * are equal, show
+                         * newest first.
+                         */
+
+                        if (
+                            prayerDifference !== 0
+                        ) {
+
+                            return prayerDifference;
+
+                        }
+
+
+                        return (
+                            new Date(
+                                b.created_at
+                            ) -
+
+                            new Date(
+                                a.created_at
+                            )
+                        );
+
+                    }
+
+
+                    return 0;
+
+                }
+            );
+
+        }
+
+
+        /* ===============================
+           LOAD PRAYERS
+        =============================== */
+
+        async function refresh() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/api/public/prayers"
+                    );
+
+
+                const prayers =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        prayers.error ||
+                        "Could not load prayers."
+                    );
+
+                }
+
+
+                /*
+                 * Separate active
+                 * and answered prayers.
+                 */
+
+                const active =
+                    prayers.filter(
+                        prayer =>
+                            !prayer.answered_at
+                    );
+
+
+                const answered =
+                    prayers.filter(
+                        prayer =>
+                            prayer.answered_at
+                    );
+
+
+                /*
+                 * Sort both lists.
+                 */
+
+                const sortedActive =
+                    sortPrayers(
+                        active
+                    );
+
+
+                const sortedAnswered =
+                    sortPrayers(
+                        answered
+                    );
+
+
+                /*
+                 * Update counts.
+                 */
+
+                el(
+                    "activeCount"
+                ).textContent =
+                    `(${active.length})`;
+
+
+                el(
+                    "answeredCount"
+                ).textContent =
+                    `(${answered.length})`;
+
+
+                /*
+                 * Render ACTIVE prayers.
+                 */
+
+                el(
+                    "activeList"
+                ).innerHTML =
+
+                    sortedActive.length
+
+                        ?
+
+                        sortedActive
+                            .map(card)
+                            .join("")
+
+                        :
+
+                        `
+
+                            <div class="card empty">
+
+                                There are no active
+                                public prayer requests
+                                right now.
+
+                            </div>
+
+                        `;
+
+
+                /*
+                 * Render ANSWERED prayers.
+                 */
+
+                el(
+                    "answeredList"
+                ).innerHTML =
+
+                    sortedAnswered.length
+
+                        ?
+
+                        sortedAnswered
+                            .map(card)
+                            .join("")
+
+                        :
+
+                        `
+
+                            <div class="card empty">
+
+                                No answered prayers yet.
+
+                            </div>
+
+                        `;
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Could not load prayers:",
+                    error
+                );
+
+
+                el(
+                    "activeList"
+                ).innerHTML = `
+
+                    <div class="card empty">
+
+                        ${esc(
+                            error.message
+                        )}
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+
+
+        /* ===============================
+           I PRAYED
+        =============================== */
+
+        async function pray(
+            id,
+            button
+        ) {
+
+            button.disabled = true;
+
+
+            try {
+
+                const response =
+                    await fetch(
+
+                        "/api/prayers/" +
+                        id +
+                        "/react",
+
+                        {
+
+                            method: "POST",
+
+                            headers: {
+
+                                "Content-Type":
+                                    "application/json"
+
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    reactorToken
+
+                                })
+
+                        }
+
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+
+                        data.error ||
+
+                        "Could not record prayer."
+
+                    );
+
+                }
+
+
+                /*
+                 * Reload the list so
+                 * the prayer count updates.
+                 */
+
+                await refresh();
+
+            }
+
+            catch (error) {
+
+                alert(
+                    error.message
+                );
+
+            }
+
+            finally {
+
+                button.disabled =
+                    false;
+
+            }
+
+        }
+
+
+        /* ===============================
+           MARK AS ANSWERED
+        =============================== */
+
+        async function answeredPrayer(
+            id,
+            button
+        ) {
+
+            const confirmed =
+                confirm(
+
+                    "Mark this prayer as answered?\n\n" +
+
+                    "It will move to the " +
+
+                    "Answered Prayers tab."
+
+                );
+
+
+            if (!confirmed) {
+
+                return;
+
+            }
+
+
+            button.disabled =
+                true;
+
+
+            try {
+
+                const response =
+                    await fetch(
+
+                        "/api/prayers/" +
+                        id +
+                        "/answered",
+
+                        {
+
+                            method: "POST"
+
+                        }
+
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+
+                        data.error ||
+
+                        "Could not mark prayer as answered."
+
+                    );
+
+                }
+
+
+                /*
+                 * Refresh the prayers.
+                 */
+
+                await refresh();
+
+
+                /*
+                 * Automatically open
+                 * Answered Prayers.
+                 */
+
+                switchTab(
+                    "answered"
+                );
+
+            }
+
+            catch (error) {
+
+                alert(
+                    error.message
+                );
+
+                button.disabled =
+                    false;
+
+            }
+
+        }
+
+
+        /* ===============================
+           SWITCH TABS
+        =============================== */
+
+        function switchTab(tab) {
+
+            currentTab =
+                tab;
+
+
+            const active =
+                tab === "active";
+
+
+            /*
+             * Change button appearance.
+             */
+
+            el(
+                "activeTab"
+            ).classList.toggle(
+                "active",
+                active
+            );
+
+
+            el(
+                "answeredTab"
+            ).classList.toggle(
+                "active",
+                !active
+            );
+
+
+            /*
+             * Show/hide sections.
+             */
+
+            el(
+                "activeSection"
+            ).style.display =
+
+                active
+                    ? ""
+                    : "none";
+
+
+            el(
+                "answeredSection"
+            ).style.display =
+
+                active
+                    ? "none"
+                    : "";
+
+        }
+
+
+        /* ===============================
+           TAB EVENTS
+        =============================== */
+
+        el(
+            "activeTab"
+        ).addEventListener(
+            "click",
+            () =>
+                switchTab(
+                    "active"
+                )
+        );
+
+
+        el(
+            "answeredTab"
+        ).addEventListener(
+            "click",
+            () =>
+                switchTab(
+                    "answered"
+                )
+        );
+
+
+        /* ===============================
+           SORT EVENT
+        =============================== */
+
+        el(
+            "sortSelect"
+        ).addEventListener(
+            "change",
+            refresh
+        );
+
+
+        /* ===============================
+           REALTIME UPDATE
+        =============================== */
+
+        socket.on(
+            "prayer-data-changed",
+            refresh
+        );
+
+
+        socket.on(
+            "prayerDeleted",
+            refresh
+        );
+
+
+        /* ===============================
+           INITIAL LOAD
+        =============================== */
+
+        refresh();
+
+    </script>
+
 </body>
 
 </html>

@@ -4,39 +4,754 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
+
     <title>Submit Prayer</title>
+
     <link rel="stylesheet" href="/style.css">
+
+    <style>
+        /* ===============================
+           PRAYER EDITOR
+        =============================== */
+
+        .request-editor {
+            position: relative;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .editor-button {
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 7px 12px;
+            border-radius: 7px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        .editor-button:hover {
+            background: #f3f3f3;
+        }
+
+        .editor-button.active {
+            background: #222;
+            color: #fff;
+            border-color: #222;
+        }
+
+        #request {
+            width: 100%;
+            box-sizing: border-box;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .editor-hint {
+            margin-top: 6px;
+            font-size: 13px;
+            color: #777;
+        }
+
+        @media (max-width: 600px) {
+            .editor-button {
+                flex: 1;
+            }
+        }
+    </style>
 </head>
 
+
 <body>
+
+    <!-- ===============================
+         HEADER
+    =============================== -->
+
     <header>
+
         <div class="header-inner">
-            <div class="brand">🙏 Prayer Room</div>
-            <nav><a href="/">Home</a><a class="active" href="/request.html">Submit Prayer</a><a
-                    href="/prayers.html">Public Prayers</a><a href="/room.html">Prayer Room</a>
-                    </nav>
+
+            <div class="brand">
+                🙏 Empire Church
+            </div>
+
+            <nav>
+
+                <a href="/">
+                    Home
+                </a>
+
+                <a class="active" href="/request.html">
+                    Submit Prayer
+                </a>
+
+                <a href="/prayers.html">
+                    Public Prayers
+                </a>
+
+                <a href="/room.html">
+                    Prayer Room
+                </a>
+
+            </nav>
+
         </div>
+
     </header>
+
+
+    <!-- ===============================
+         MAIN
+    =============================== -->
+
     <main class="container">
+
         <section class="card narrow-card">
-            <div class="eyebrow">Prayer request</div>
-            <h1>Share a prayer</h1>
-            <p>Your name is optional. Choose whether the request should be public or private.</p>
+
+            <div class="eyebrow">
+                Prayer request
+            </div>
+
+            <h1>
+                Share a prayer
+            </h1>
+
+            <p>
+                Your name is optional. Choose whether the request
+                should be public or private.
+            </p>
+
+
             <form id="form">
-                <div><label for="name">Name (optional)</label><input id="name" maxlength="100" placeholder="Anonymous">
+
+                <!-- ===============================
+                     NAME
+                =============================== -->
+
+                <div>
+
+                    <label for="name">
+                        Name (optional)
+                    </label>
+
+                    <input
+                        id="name"
+                        maxlength="100"
+                        placeholder="Anonymous"
+                    >
+
                 </div>
-                <div><label for="request">Prayer request</label><textarea id="request" maxlength="3000" required
-                        placeholder="Write your prayer request..."></textarea></div>
-                <div><label>Visibility</label>
-                    <div class="radio-row"><label><input type="radio" name="visibility" value="public" checked>
-                            Public</label><label><input type="radio" name="visibility" value="private"> Private</label>
+
+
+                <!-- ===============================
+                     PRAYER REQUEST
+                =============================== -->
+
+                <div>
+
+                    <label for="request">
+                        Prayer request
+                    </label>
+
+
+                    <!-- TOOLBAR -->
+
+                    <div class="editor-toolbar">
+
+                        <button
+                            type="button"
+                            id="bulletButton"
+                            class="editor-button"
+                            title="Create a bullet list"
+                        >
+                            • Bullet List
+                        </button>
+
                     </div>
-                </div><button class="button" id="submit">Submit Prayer</button>
+
+
+                    <!-- TEXTAREA -->
+
+                    <div class="request-editor">
+
+                        <textarea
+                            id="request"
+                            maxlength="3000"
+                            required
+                            placeholder="Write your prayer request..."
+                        ></textarea>
+
+                    </div>
+
+
+                    <div class="editor-hint">
+                        Tip: Press Enter after a bullet to automatically
+                        create another bullet.
+                    </div>
+
+                </div>
+
+
+                <!-- ===============================
+                     VISIBILITY
+                =============================== -->
+
+                <div>
+
+                    <label>
+                        Visibility
+                    </label>
+
+                    <div class="radio-row">
+
+                        <label>
+
+                            <input
+                                type="radio"
+                                name="visibility"
+                                value="public"
+                                checked
+                            >
+
+                            Public
+
+                        </label>
+
+
+                        <label>
+
+                            <input
+                                type="radio"
+                                name="visibility"
+                                value="private"
+                            >
+
+                            Private
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ===============================
+                     SUBMIT
+                =============================== -->
+
+                <button
+                    class="button"
+                    id="submit"
+                    type="submit"
+                >
+                    Submit Prayer
+                </button>
+
+
                 <div id="message"></div>
+
             </form>
+
         </section>
+
     </main>
-    <script>form.addEventListener('submit', async e => { e.preventDefault(); submit.disabled = true; message.textContent = 'Submitting...'; try { const visibility = document.querySelector('input[name="visibility"]:checked').value; const r = await fetch('/api/prayers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.value, request: request.value, visibility }) }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Unable to submit prayer.'); message.className = 'success'; message.textContent = d.message; form.reset(); document.querySelector('input[value="public"]').checked = true } catch (e) { message.className = ''; message.textContent = e.message } finally { submit.disabled = false } });</script>
+
+
+    <!-- ===============================
+         JAVASCRIPT
+    =============================== -->
+
+    <script>
+
+        const form =
+            document.getElementById("form");
+
+        const nameInput =
+            document.getElementById("name");
+
+        const requestInput =
+            document.getElementById("request");
+
+        const submitButton =
+            document.getElementById("submit");
+
+        const message =
+            document.getElementById("message");
+
+        const bulletButton =
+            document.getElementById("bulletButton");
+
+
+        /* ===============================
+           BULLET MODE
+        =============================== */
+
+        let bulletMode = false;
+
+
+        /* ===============================
+           BULLET BUTTON
+        =============================== */
+
+        bulletButton.addEventListener(
+            "click",
+            function () {
+
+                bulletMode =
+                    !bulletMode;
+
+
+                bulletButton.classList.toggle(
+                    "active",
+                    bulletMode
+                );
+
+
+                /*
+                 * If turning bullet mode ON,
+                 * add a bullet at the cursor.
+                 */
+
+                if (bulletMode) {
+
+                    const start =
+                        requestInput.selectionStart;
+
+                    const end =
+                        requestInput.selectionEnd;
+
+                    const text =
+                        requestInput.value;
+
+
+                    /*
+                     * If the textarea is empty,
+                     * start with a bullet.
+                     */
+
+                    if (
+                        text.length === 0
+                    ) {
+
+                        requestInput.value =
+                            "• ";
+
+                        requestInput.focus();
+
+                        requestInput.selectionStart =
+                            requestInput.value.length;
+
+                        requestInput.selectionEnd =
+                            requestInput.value.length;
+
+                        return;
+                    }
+
+
+                    /*
+                     * If there is already text,
+                     * add a bullet at the
+                     * beginning of the current line.
+                     */
+
+                    const lineStart =
+                        text.lastIndexOf(
+                            "\n",
+                            start - 1
+                        ) + 1;
+
+
+                    const before =
+                        text.substring(
+                            0,
+                            lineStart
+                        );
+
+                    const after =
+                        text.substring(
+                            lineStart
+                        );
+
+
+                    /*
+                     * Don't add another bullet
+                     * if the current line already
+                     * starts with one.
+                     */
+
+                    const currentLine =
+                        text.substring(
+                            lineStart,
+                            end
+                        );
+
+
+                    if (
+                        !currentLine.startsWith("• ")
+                    ) {
+
+                        requestInput.value =
+                            before +
+                            "• " +
+                            after;
+
+                        requestInput.selectionStart =
+                            start + 2;
+
+                        requestInput.selectionEnd =
+                            end + 2;
+
+                    }
+
+
+                    requestInput.focus();
+
+                }
+
+                else {
+
+                    requestInput.focus();
+
+                }
+
+            }
+        );
+
+
+        /* ===============================
+           AUTOMATIC BULLETS
+        =============================== */
+
+        requestInput.addEventListener(
+            "keydown",
+            function (event) {
+
+                /*
+                 * Only do automatic bullets
+                 * when bullet mode is enabled.
+                 */
+
+                if (
+                    !bulletMode ||
+                    event.key !== "Enter"
+                ) {
+
+                    return;
+
+                }
+
+
+                const start =
+                    requestInput.selectionStart;
+
+                const end =
+                    requestInput.selectionEnd;
+
+                const text =
+                    requestInput.value;
+
+
+                /*
+                 * Find the current line.
+                 */
+
+                const lineStart =
+                    text.lastIndexOf(
+                        "\n",
+                        start - 1
+                    ) + 1;
+
+                const lineEnd =
+                    text.indexOf(
+                        "\n",
+                        start
+                    );
+
+
+                const actualLineEnd =
+                    lineEnd === -1
+                        ? text.length
+                        : lineEnd;
+
+
+                const currentLine =
+                    text.substring(
+                        lineStart,
+                        actualLineEnd
+                    );
+
+
+                /*
+                 * Check whether the current line
+                 * starts with a bullet.
+                 */
+
+                if (
+                    !currentLine.startsWith("• ")
+                ) {
+
+                    return;
+
+                }
+
+
+                /*
+                 * Get the text after
+                 * the bullet.
+                 */
+
+                const bulletText =
+                    currentLine
+                        .substring(2)
+                        .trim();
+
+
+                /*
+                 * If the bullet is empty,
+                 * pressing Enter exits
+                 * bullet mode.
+                 */
+
+                if (
+                    bulletText.length === 0
+                ) {
+
+                    event.preventDefault();
+
+
+                    const before =
+                        text.substring(
+                            0,
+                            lineStart
+                        );
+
+                    const after =
+                        text.substring(
+                            actualLineEnd
+                        );
+
+
+                    requestInput.value =
+                        before +
+                        after;
+
+
+                    requestInput.selectionStart =
+                        lineStart;
+
+                    requestInput.selectionEnd =
+                        lineStart;
+
+
+                    bulletMode =
+                        false;
+
+                    bulletButton.classList.remove(
+                        "active"
+                    );
+
+
+                    return;
+
+                }
+
+
+                /*
+                 * Normal bullet behavior:
+                 *
+                 * • Current prayer
+                 * •
+                 *
+                 * becomes:
+                 *
+                 * • Current prayer
+                 * •
+                 */
+
+                event.preventDefault();
+
+
+                const before =
+                    text.substring(
+                        0,
+                        start
+                    );
+
+                const after =
+                    text.substring(
+                        end
+                    );
+
+
+                const newText =
+                    before +
+                    "\n• " +
+                    after;
+
+
+                requestInput.value =
+                    newText;
+
+
+                /*
+                 * Put cursor after
+                 * the new bullet.
+                 */
+
+                const newPosition =
+                    start + 3;
+
+
+                requestInput.selectionStart =
+                    newPosition;
+
+                requestInput.selectionEnd =
+                    newPosition;
+
+            }
+        );
+
+
+        /* ===============================
+           FORM SUBMISSION
+        =============================== */
+
+        form.addEventListener(
+            "submit",
+            async function (e) {
+
+                e.preventDefault();
+
+
+                submitButton.disabled =
+                    true;
+
+
+                message.className = "";
+
+                message.textContent =
+                    "Submitting...";
+
+
+                try {
+
+                    const visibility =
+                        document.querySelector(
+                            'input[name="visibility"]:checked'
+                        ).value;
+
+
+                    const response =
+                        await fetch(
+                            "/api/prayers",
+                            {
+
+                                method: "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                body:
+                                    JSON.stringify({
+
+                                        name:
+                                            nameInput.value,
+
+                                        request:
+                                            requestInput.value,
+
+                                        visibility:
+                                            visibility
+
+                                    })
+
+                            }
+                        );
+
+
+                    const data =
+                        await response.json();
+
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data.error ||
+                            "Unable to submit prayer."
+                        );
+
+                    }
+
+
+                    message.className =
+                        "success";
+
+                    message.textContent =
+                        data.message;
+
+
+                    /*
+                     * Reset form.
+                     */
+
+                    form.reset();
+
+
+                    /*
+                     * Reset bullet mode.
+                     */
+
+                    bulletMode =
+                        false;
+
+                    bulletButton.classList.remove(
+                        "active"
+                    );
+
+
+                    /*
+                     * Restore Public
+                     * as default.
+                     */
+
+                    document.querySelector(
+                        'input[value="public"]'
+                    ).checked = true;
+
+                }
+
+                catch (error) {
+
+                    message.className =
+                        "";
+
+                    message.textContent =
+                        error.message;
+
+                }
+
+                finally {
+
+                    submitButton.disabled =
+                        false;
+
+                }
+
+            }
+        );
+
+    </script>
+
 </body>
 
 </html>
