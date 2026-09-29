@@ -3,48 +3,2871 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>Prayer Room</title>
+
     <link rel="stylesheet" href="/style.css">
     <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .room-status {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .room-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: #f1f1f1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .private-badge {
+            background: #eee7ff;
+        }
+
+        .public-badge {
+            background: #eaf6ff;
+        }
+
+        .join-card {
+            max-width: 560px;
+            margin: 40px auto;
+        }
+
+        .join-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .join-actions .button {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .room-code-input {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .room-controls {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+        }
+
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .room-code-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            background: #f6f6f6;
+            margin-top: 15px;
+        }
+
+        .room-code {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            word-break: break-all;
+        }
+
+        .room-prayer-card {
+            min-width: 0;
+        }
+
+        .room-prayer-text {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.65;
+            margin: 12px 0;
+        }
+
+        .room-prayer-card.completed {
+            opacity: 0.75;
+            border-left: 4px solid #36a269;
+        }
+
+        .room-prayer-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .room-only-form textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        .save-choice {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+
+        .save-choice label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .room-only-card {
+            border-left: 4px solid #8064d8;
+        }
+
+        .temporary-badge {
+            background: #fff4dc;
+            color: #805b00;
+        }
+
+        .saved-badge {
+            background: #eee7ff;
+            color: #5b3fa0;
+        }
+
+        .room-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .danger-button {
+            background: #b42318 !important;
+            color: white !important;
+        }
+
+        .room-message {
+            margin-top: 12px;
+            min-height: 22px;
+        }
+
+        .bullet-button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 700px) {
+
+            .room-code-box {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .room-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .join-actions {
+                flex-direction: column;
+            }
+
+            .join-actions .button {
+                width: 100%;
+            }
+
+        }
+    </style>
 </head>
 
 <body>
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
     <header>
         <div class="header-inner">
-            <div class="brand">🙏 Empire Church</div>
-            <nav><a href="/">Home</a><a href="/request.html">Submit Prayer</a><a href="/prayers.html">Public
-                    Prayers</a><a class="active" href="/room.html">Prayer Room</a></nav>
+
+            <div class="brand">
+                🙏 Prayer Room
+            </div>
+
+            <nav>
+                <a href="/">Home</a>
+                <a href="/request.html">Submit Prayer</a>
+                <a href="/prayers.html">Public Prayers</a>
+                <a class="active" href="/room.html">Prayer Room</a>
+            </nav>
+
         </div>
     </header>
-    <main class="container">
-        <section id="join" class="card narrow-card">
-            <div class="eyebrow">Prayer Room</div>
-            <h1>Enter the Prayer Room</h1>
-            <p><strong id="liveCount">0</strong> people are currently praying.</p>
-            <form id="joinForm"><input id="personName" required maxlength="100" placeholder="Your name"><button
-                    class="button">Enter Room</button></form>
-        </section>
-        <section id="room" hidden>
-            <div class="room-header">
+
+
+    <!-- =====================================================
+         JOIN SCREEN
+    ====================================================== -->
+
+    <main id="joinScreen" class="container">
+
+        <section class="card join-card">
+
+            <div class="eyebrow">
+                Prayer Room
+            </div>
+
+            <h1>
+                Enter the Prayer Room
+            </h1>
+
+            <p>
+                Join the public Prayer Room or enter a private
+                room code.
+            </p>
+
+
+            <form id="joinForm">
+
                 <div>
-                    <div class="eyebrow">You are praying as</div>
-                    <h1 id="currentName"></h1>
+
+                    <label for="joinName">
+                        Your name
+                    </label>
+
+                    <input
+                        id="joinName"
+                        maxlength="100"
+                        required
+                        placeholder="Enter your name"
+                    >
+
                 </div>
-                <div class="live"><span class="live-dot"></span><b id="peopleNow">0</b> people praying now</div><button
-                    class="button secondary" id="leave">Leave Room</button>
-            </div>
-            <div class="stats">
-                <div class="stat"><strong id="assigned">0</strong><span>Assigned</span></div>
-                <div class="stat"><strong id="done">0</strong><span>Prayed</span></div>
-                <div class="stat"><strong id="waiting">0</strong><span>Waiting</span></div>
-            </div>
-            <div class="notice">Press <strong>🙏 I Prayed</strong> when you have prayed for a request. This records your
-                prayer reaction; it does not automatically declare the prayer answered.</div>
-            <div id="prayers" class="grid" style="margin-top:18px"></div>
+
+
+                <div>
+
+                    <label for="joinCode">
+
+                        Private room code
+
+                        <small>
+                            (optional)
+                        </small>
+
+                    </label>
+
+                    <input
+                        id="joinCode"
+                        class="room-code-input"
+                        maxlength="20"
+                        placeholder="Example: A7K9X2P4"
+                    >
+
+                </div>
+
+
+                <div class="join-actions">
+
+                    <button
+                        class="button"
+                        type="submit"
+                    >
+                        🙏 Join Prayer Room
+                    </button>
+
+
+                    <button
+                        class="button secondary"
+                        type="button"
+                        id="createRoomButton"
+                    >
+                        🔒 Create Private Room
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="joinMessage"
+                    class="room-message"
+                ></div>
+
+            </form>
+
         </section>
+
     </main>
-    <script>const socket = io(); let token = localStorage.getItem('prayerRoomToken'); function showRoom() { join.hidden = true; room.hidden = false } function showJoin() { join.hidden = false; room.hidden = true } function esc(x) { const d = document.createElement('div'); d.textContent = x ?? ''; return d.innerHTML } async function refresh() { if (!token) { showJoin(); return } try { const r = await fetch('/api/room/' + encodeURIComponent(token)); if (!r.ok) { localStorage.removeItem('prayerRoomToken'); token = null; showJoin(); return } const d = await r.json(); showRoom(); currentName.textContent = d.participant.name; liveCount.textContent = d.roomCount; peopleNow.textContent = d.roomCount; const doneCount = d.prayers.filter(p => p.completed_at).length; assigned.textContent = d.prayers.length; done.textContent = doneCount; waiting.textContent = d.prayers.length - doneCount; prayers.innerHTML = d.prayers.length ? d.prayers.map(p => `<article class="card prayer-card ${p.completed_at ? 'answered' : ''}"><div class="meta"><span>${p.completed_at ? '✓ Already Prayed' : '🙏 Assigned Prayer'}</span><small>🙏 ${p.prayer_count}</small></div><p>${esc(p.request)}</p><div class="author">— ${esc(p.name || 'Anonymous')}</div>${p.completed_at ? '<div class="success">You prayed for this request.</div>' : `<button class="button" onclick="pray(${p.assignment_id},this)">🙏 for This</button>`}</article>`).join('') : '<div class="card empty">No active public prayer has been assigned to you yet.</div>' } catch (e) { console.error(e) } } async function pray(id, b) { b.disabled = true; try { const r = await fetch('/api/room/assignments/' + id + '/pray', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) }); const d = await r.json(); if (!r.ok) throw new Error(d.error); await refresh() } catch (e) { alert(e.message); b.disabled = false } } joinForm.addEventListener('submit', async e => { e.preventDefault(); const b = e.target.querySelector('button'); b.disabled = true; try { const r = await fetch('/api/room/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: personName.value }) }); const d = await r.json(); if (!r.ok) throw new Error(d.error); token = d.token; localStorage.setItem('prayerRoomToken', token); await refresh() } catch (e) { alert(e.message) } finally { b.disabled = false } }); leave.addEventListener('click', async () => { try { await fetch('/api/room/leave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) }) } finally { localStorage.removeItem('prayerRoomToken'); token = null; showJoin() } }); setInterval(async () => { if (!token) return; try { const r = await fetch('/api/room/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) }); if (!r.ok) { localStorage.removeItem('prayerRoomToken'); token = null; showJoin() } } catch { } }, 3000); socket.on('room-count', n => { liveCount.textContent = n; peopleNow.textContent = n }); socket.on('prayer-data-changed', refresh); socket.on('prayerDeleted', refresh); refresh();</script>
+
+
+    <!-- =====================================================
+         ROOM SCREEN
+    ====================================================== -->
+
+    <main
+        id="roomScreen"
+        class="container hidden"
+    >
+
+
+        <!-- ROOM HEADER -->
+
+        <div class="room-header">
+
+            <div>
+
+                <div class="eyebrow">
+                    Prayer Room
+                </div>
+
+                <h1 id="roomTitle">
+                    Prayer Room
+                </h1>
+
+            </div>
+
+
+            <div class="room-status">
+
+                <span class="room-badge">
+
+                    👥
+
+                    <span id="roomCount">
+                        0
+                    </span>
+
+                    praying
+
+                </span>
+
+
+                <span
+                    id="roomTypeBadge"
+                    class="room-badge public-badge"
+                >
+                    🌎 Public Room
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             PRIVATE ROOM CODE
+        ================================================== -->
+
+        <section
+            id="roomCodeSection"
+            class="card hidden"
+        >
+
+            <h2>
+                🔒 Private Room
+            </h2>
+
+            <p>
+                Share this code with the people you want
+                to join this private Prayer Room.
+            </p>
+
+
+            <div class="room-code-box">
+
+                <div>
+
+                    <small>
+                        Room Code
+                    </small>
+
+                    <div
+                        id="roomCode"
+                        class="room-code"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <button
+                    id="copyCodeButton"
+                    class="button secondary"
+                    type="button"
+                >
+                    📋 Copy Code
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PRAYER SELECTION CONTROLS
+        ================================================== -->
+
+        <section class="card">
+
+            <div class="eyebrow">
+                Prayer Selection
+            </div>
+
+            <h2>
+                🙏 Prayer Requests
+            </h2>
+
+            <p>
+                Your prayer requests update automatically
+                whenever you change the controls below.
+            </p>
+
+
+            <div class="room-controls">
+
+
+                <!-- NUMBER -->
+
+                <div class="control-group">
+
+                    <label for="amount">
+                        Number of prayers
+                    </label>
+
+                    <select id="amount">
+
+                        <option value="1">
+                            1 Prayer
+                        </option>
+
+                        <option value="3">
+                            3 Prayers
+                        </option>
+
+                        <option value="5" selected>
+                            5 Prayers
+                        </option>
+
+                        <option value="10">
+                            10 Prayers
+                        </option>
+
+                        <option value="15">
+                            15 Prayers
+                        </option>
+
+                        <option value="20">
+                            20 Prayers
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- SELECTION MODE -->
+
+                <div class="control-group">
+
+                    <label for="selectionMode">
+                        Selection method
+                    </label>
+
+                    <select id="selectionMode">
+
+                        <option value="random">
+                            Random
+                        </option>
+
+                        <option value="newest">
+                            Newest First
+                        </option>
+
+                        <option value="oldest">
+                            Oldest First
+                        </option>
+
+                        <option value="least_prayed">
+                            Least Prayed
+                        </option>
+
+                        <option value="most_prayed">
+                            Most Prayed
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- KEYWORD -->
+
+                <div class="control-group">
+
+                    <label for="keyword">
+
+                        Keyword
+
+                        <small>
+                            (optional)
+                        </small>
+
+                    </label>
+
+                    <input
+                        id="keyword"
+                        maxlength="100"
+                        placeholder="family, healing..."
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- RANDOM AMOUNT -->
+
+            <div
+                style="
+                    margin-top:12px;
+                    display:flex;
+                    align-items:center;
+                    gap:8px;
+                "
+            >
+
+                <input
+                    id="randomAmount"
+                    type="checkbox"
+                >
+
+                <label for="randomAmount">
+
+                    Random number of prayers
+
+                    <small>
+                        (1–5)
+                    </small>
+
+                </label>
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div
+                id="assignMessage"
+                class="room-message"
+            >
+                Prayer selection will happen automatically.
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ACTIVE PRAYERS
+        ================================================== -->
+
+        <section>
+
+            <div class="section-title">
+
+                <h2>
+                    🙏 My Prayer Requests
+                </h2>
+
+                <span id="activePrayerCount">
+                    0
+                </span>
+
+            </div>
+
+
+            <div
+                id="activePrayerList"
+                class="grid"
+            >
+
+                <div class="card empty">
+
+                    You have no active prayer
+                    assignments.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             COMPLETED PRAYERS
+        ================================================== -->
+
+        <section>
+
+            <div class="section-title">
+
+                <h2>
+                    ✅ Prayed For
+                </h2>
+
+                <span id="completedPrayerCount">
+                    0
+                </span>
+
+            </div>
+
+
+            <div
+                id="completedPrayerList"
+                class="grid"
+            >
+
+                <div class="card empty">
+
+                    You have not completed
+                    a prayer yet.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PRIVATE ROOM-ONLY PRAYERS
+        ================================================== -->
+
+        <section
+            id="roomOnlySection"
+            class="hidden"
+        >
+
+            <div class="section-title">
+
+                <h2>
+                    🔒 Room Prayers
+                </h2>
+
+            </div>
+
+
+            <!-- ADD ROOM PRAYER -->
+
+            <section class="card">
+
+                <div class="eyebrow">
+                    Private to this room
+                </div>
+
+                <h2>
+                    🙏 Add a Room Prayer
+                </h2>
+
+                <p>
+                    These prayers are visible only to people
+                    inside this private room.
+                </p>
+
+
+                <form
+                    id="roomPrayerForm"
+                    class="room-only-form"
+                >
+
+
+                    <!-- BULLET BUTTON -->
+
+                    <div class="bullet-button-row">
+
+                        <button
+                            type="button"
+                            class="button secondary"
+                            id="bulletButton"
+                        >
+                            • Add Bullet
+                        </button>
+
+                    </div>
+
+
+                    <!-- PRAYER TEXT -->
+
+                    <textarea
+                        id="roomPrayerRequest"
+                        maxlength="5000"
+                        required
+                        placeholder="Write a prayer for this private room...
+
+Example:
+• Please pray for my family.
+• Please pray for healing.
+• Please pray for guidance."
+                    ></textarea>
+
+
+                    <!-- SAVE TYPE -->
+
+                    <div class="save-choice">
+
+                        <label>
+
+                            <input
+                                type="radio"
+                                name="roomPrayerType"
+                                value="temporary"
+                                checked
+                            >
+
+                            ⏳ Temporary
+
+                        </label>
+
+
+                        <label>
+
+                            <input
+                                type="radio"
+                                name="roomPrayerType"
+                                value="saved"
+                            >
+
+                            💾 Save in this room
+
+                        </label>
+
+                    </div>
+
+
+                    <!-- SUBMIT -->
+
+                    <button
+                        class="button"
+                        type="submit"
+                    >
+                        ➕ Add Room Prayer
+                    </button>
+
+
+                    <div
+                        id="roomPrayerMessage"
+                        class="room-message"
+                    ></div>
+
+                </form>
+
+            </section>
+
+
+            <!-- ROOM PRAYER LIST -->
+
+            <div
+                id="roomOnlyList"
+                class="grid"
+            >
+
+                <div class="card empty">
+
+                    No private room prayers yet.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             LEAVE
+        ================================================== -->
+
+        <section
+            class="card"
+            style="margin-top:30px;"
+        >
+
+            <div class="room-actions">
+
+                <button
+                    id="leaveButton"
+                    class="button secondary"
+                    type="button"
+                >
+                    Leave Prayer Room
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
+    <script>
+
+        /* =====================================================
+           SOCKET.IO
+        ====================================================== */
+
+        const socket = io();
+
+
+        /* =====================================================
+           SHORTCUT
+        ====================================================== */
+
+        const $ = (id) =>
+            document.getElementById(id);
+
+
+        /* =====================================================
+           SCREENS
+        ====================================================== */
+
+        const joinScreen =
+            $("joinScreen");
+
+        const roomScreen =
+            $("roomScreen");
+
+
+        /* =====================================================
+           JOIN ELEMENTS
+        ====================================================== */
+
+        const joinForm =
+            $("joinForm");
+
+        const joinName =
+            $("joinName");
+
+        const joinCode =
+            $("joinCode");
+
+        const joinMessage =
+            $("joinMessage");
+
+
+        /* =====================================================
+           STATE
+        ====================================================== */
+
+        let token =
+            localStorage.getItem(
+                "prayerRoomToken"
+            );
+
+        let roomData =
+            null;
+
+        let heartbeatTimer =
+            null;
+
+        let prayerSyncTimer =
+            null;
+
+        let prayerSyncRunning =
+            false;
+
+
+        /* =====================================================
+           ESCAPE HTML
+        ====================================================== */
+
+        function esc(value) {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.textContent =
+                value ?? "";
+
+            return div.innerHTML;
+
+        }
+
+
+        /* =====================================================
+           DATE FORMAT
+        ====================================================== */
+
+        function formatDate(value) {
+
+            if (!value) {
+                return "";
+            }
+
+            return new Date(
+                value
+            ).toLocaleString();
+
+        }
+
+
+        /* =====================================================
+           API HELPER
+        ====================================================== */
+
+        async function api(
+            url,
+            options = {}
+        ) {
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        ...options,
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            ...(options.headers || {})
+
+                        }
+
+                    }
+                );
+
+
+            const data =
+                await response
+                    .json()
+                    .catch(
+                        () => ({})
+                    );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "Request failed."
+                );
+
+            }
+
+
+            return data;
+
+        }
+
+
+        /* =====================================================
+           JOIN PUBLIC / PRIVATE ROOM
+        ====================================================== */
+
+        joinForm.addEventListener(
+            "submit",
+            async (event) => {
+
+                event.preventDefault();
+
+
+                const name =
+                    joinName.value.trim();
+
+                const code =
+                    joinCode.value
+                        .trim()
+                        .toUpperCase();
+
+
+                if (!name) {
+
+                    joinMessage.textContent =
+                        "Please enter your name.";
+
+                    return;
+
+                }
+
+
+                joinMessage.textContent =
+                    "Joining...";
+
+
+                try {
+
+                    const data =
+                        await api(
+                            "/api/room/join",
+                            {
+
+                                method: "POST",
+
+                                body:
+                                    JSON.stringify({
+
+                                        name,
+
+                                        roomCode:
+                                            code ||
+                                            null
+
+                                    })
+
+                            }
+                        );
+
+
+                    token =
+                        data.token;
+
+
+                    localStorage.setItem(
+                        "prayerRoomToken",
+                        token
+                    );
+
+
+                    await loadRoom();
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "Join room:",
+                        error
+                    );
+
+                    joinMessage.textContent =
+                        error.message;
+
+                }
+
+            }
+        );
+
+
+        /* =====================================================
+           CREATE PRIVATE ROOM
+        ====================================================== */
+
+        $("createRoomButton")
+            .addEventListener(
+                "click",
+                async () => {
+
+                    const name =
+                        joinName.value.trim();
+
+
+                    if (!name) {
+
+                        joinMessage.textContent =
+                            "Enter your name first.";
+
+                        joinName.focus();
+
+                        return;
+
+                    }
+
+
+                    const roomName =
+                        prompt(
+                            "Give your private Prayer Room a name:",
+                            "Private Prayer Room"
+                        );
+
+
+                    if (
+                        roomName === null
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    joinMessage.textContent =
+                        "Creating private room...";
+
+
+                    try {
+
+                        const data =
+                            await api(
+                                "/api/room/create",
+                                {
+
+                                    method: "POST",
+
+                                    body:
+                                        JSON.stringify({
+
+                                            name,
+
+                                            roomName:
+                                                roomName.trim() ||
+                                                "Private Prayer Room"
+
+                                        })
+
+                                }
+                            );
+
+
+                        token =
+                            data.token;
+
+
+                        localStorage.setItem(
+                            "prayerRoomToken",
+                            token
+                        );
+
+
+                        await loadRoom();
+
+
+                        alert(
+                            "Private room created!\n\n" +
+                            "Room code: " +
+                            data.room.code
+                        );
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Create room:",
+                            error
+                        );
+
+                        joinMessage.textContent =
+                            error.message;
+
+                    }
+
+                }
+            );
+
+
+        /* =====================================================
+           LOAD ROOM
+        ====================================================== */
+
+        async function loadRoom() {
+
+            if (!token) {
+
+                showJoinScreen();
+
+                return;
+
+            }
+
+
+            try {
+
+                const data =
+                    await api(
+                        "/api/room/" +
+                        encodeURIComponent(
+                            token
+                        )
+                    );
+
+
+                roomData =
+                    data;
+
+
+                showRoomScreen();
+
+
+                renderRoom(
+                    data
+                );
+
+
+                startHeartbeat();
+
+
+                schedulePrayerSync(
+                    100
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Load room:",
+                    error
+                );
+
+
+                localStorage.removeItem(
+                    "prayerRoomToken"
+                );
+
+
+                token =
+                    null;
+
+
+                stopHeartbeat();
+
+
+                showJoinScreen();
+
+            }
+
+        }
+
+
+        /* =====================================================
+           SHOW JOIN
+        ====================================================== */
+
+        function showJoinScreen() {
+
+            joinScreen.classList.remove(
+                "hidden"
+            );
+
+            roomScreen.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        /* =====================================================
+           SHOW ROOM
+        ====================================================== */
+
+        function showRoomScreen() {
+
+            joinScreen.classList.add(
+                "hidden"
+            );
+
+            roomScreen.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        /* =====================================================
+           RENDER ROOM
+        ====================================================== */
+
+        function renderRoom(
+            data
+        ) {
+
+            const room =
+                data.room || {};
+
+
+            $("roomTitle")
+                .textContent =
+                room.name ||
+                "Prayer Room";
+
+
+            $("roomCount")
+                .textContent =
+                data.roomCount || 0;
+
+
+            const privateRoom =
+                Boolean(
+                    room.is_private
+                );
+
+
+            /* ROOM BADGE */
+
+            const badge =
+                $("roomTypeBadge");
+
+
+            badge.textContent =
+                privateRoom
+                    ? "🔒 Private Room"
+                    : "🌎 Public Room";
+
+
+            badge.className =
+                "room-badge " +
+                (
+                    privateRoom
+                        ? "private-badge"
+                        : "public-badge"
+                );
+
+
+            /* ROOM CODE */
+
+            $("roomCodeSection")
+                .classList.toggle(
+                    "hidden",
+                    !privateRoom
+                );
+
+
+            if (privateRoom) {
+
+                $("roomCode")
+                    .textContent =
+                    room.code || "—";
+
+            }
+
+
+            /* PRIVATE ROOM SECTION */
+
+            $("roomOnlySection")
+                .classList.toggle(
+                    "hidden",
+                    !privateRoom
+                );
+
+
+            /* PUBLIC PRAYERS */
+
+            renderAssignedPrayers(
+                data.prayers || []
+            );
+
+
+            /* ROOM-ONLY PRAYERS */
+
+            renderRoomPrayers(
+                data.roomPrayers || []
+            );
+
+        }
+
+
+        /* =====================================================
+           SELECT AMOUNT
+        ====================================================== */
+
+        function getSelectedAmount() {
+
+            let amount =
+                Number(
+                    $("amount").value
+                );
+
+
+            if (
+                $("randomAmount").checked
+            ) {
+
+                amount =
+                    Math.floor(
+                        Math.random() * 5
+                    ) + 1;
+
+            }
+
+
+            return amount;
+
+        }
+
+
+        /* =====================================================
+           DEBOUNCE PRAYER SYNC
+        ====================================================== */
+
+        function schedulePrayerSync(
+            delay = 300
+        ) {
+
+            clearTimeout(
+                prayerSyncTimer
+            );
+
+
+            prayerSyncTimer =
+                setTimeout(
+                    () => {
+
+                        syncPrayers();
+
+                    },
+                    delay
+                );
+
+        }
+
+
+        /* =====================================================
+           AUTOMATIC PRAYER SYNC
+        ====================================================== */
+
+        async function syncPrayers() {
+
+            if (
+                !token ||
+                prayerSyncRunning
+            ) {
+
+                return;
+
+            }
+
+
+            prayerSyncRunning =
+                true;
+
+
+            const amount =
+                getSelectedAmount();
+
+
+            const mode =
+                $("selectionMode")
+                    .value;
+
+
+            const keyword =
+                $("keyword")
+                    .value
+                    .trim();
+
+
+            $("assignMessage")
+                .textContent =
+                "Finding prayer requests...";
+
+
+            try {
+
+                const data =
+                    await api(
+                        "/api/room/sync",
+                        {
+
+                            method: "POST",
+
+                            body:
+                                JSON.stringify({
+
+                                    token,
+
+                                    amount,
+
+                                    mode,
+
+                                    keyword
+
+                                })
+
+                        }
+                    );
+
+
+                $("assignMessage")
+                    .textContent =
+                    data.message ||
+                    `${data.count || 0} prayer request(s) selected.`;
+
+
+                /*
+                  Update displayed prayers
+                  immediately.
+                */
+
+                if (data.prayers) {
+
+                    roomData =
+                        {
+                            ...roomData,
+
+                            prayers:
+                                data.prayers
+
+                        };
+
+
+                    renderAssignedPrayers(
+                        data.prayers
+                    );
+
+                }
+
+
+                /*
+                  Reload complete room data
+                  so room-only prayers,
+                  room count, etc. stay current.
+                */
+
+                await loadRoom();
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Prayer sync:",
+                    error
+                );
+
+
+                $("assignMessage")
+                    .textContent =
+                    error.message;
+
+            }
+
+            finally {
+
+                prayerSyncRunning =
+                    false;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           CONTROL EVENTS
+        ====================================================== */
+
+        $("amount")
+            .addEventListener(
+                "change",
+                () => {
+
+                    schedulePrayerSync(
+                        100
+                    );
+
+                }
+            );
+
+
+        $("selectionMode")
+            .addEventListener(
+                "change",
+                () => {
+
+                    schedulePrayerSync(
+                        100
+                    );
+
+                }
+            );
+
+
+        $("randomAmount")
+            .addEventListener(
+                "change",
+                () => {
+
+                    schedulePrayerSync(
+                        100
+                    );
+
+                }
+            );
+
+
+        /* =====================================================
+           KEYWORD SEARCH
+        ====================================================== */
+
+        let keywordTimer =
+            null;
+
+
+        $("keyword")
+            .addEventListener(
+                "input",
+                () => {
+
+                    clearTimeout(
+                        keywordTimer
+                    );
+
+
+                    keywordTimer =
+                        setTimeout(
+                            () => {
+
+                                schedulePrayerSync(
+                                    100
+                                );
+
+                            },
+                            500
+                        );
+
+                }
+            );
+
+
+        /* =====================================================
+           PUBLIC PRAYER CARD
+        ====================================================== */
+
+        function prayerCard(
+            prayer
+        ) {
+
+            const completed =
+                Boolean(
+                    prayer.completed_at
+                );
+
+
+            return `
+
+                <article
+                    class="card room-prayer-card ${
+                        completed
+                            ? "completed"
+                            : ""
+                    }"
+                >
+
+                    <div
+                        class="room-prayer-meta"
+                    >
+
+                        <strong>
+
+                            ${
+                                completed
+                                    ? "✅ Prayed For"
+                                    : "🙏 Prayer Request"
+                            }
+
+                        </strong>
+
+
+                        <span>
+
+                            🙏 ${
+                                Number(
+                                    prayer.prayer_count ||
+                                    0
+                                )
+                            }
+
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="room-prayer-text"
+                    >
+
+                        ${esc(
+                            prayer.request
+                        )}
+
+                    </div>
+
+
+                    <div class="author">
+
+                        — ${
+                            esc(
+                                prayer.name ||
+                                "Anonymous"
+                            )
+                        }
+
+                        <br>
+
+                        <small>
+
+                            Submitted:
+
+                            ${
+                                esc(
+                                    formatDate(
+                                        prayer.created_at
+                                    )
+                                )
+                            }
+
+                        </small>
+
+                    </div>
+
+
+                    ${
+                        completed
+
+                            ?
+
+                            `
+
+                                <div
+                                    class="success"
+                                    style="margin-top:10px;"
+                                >
+
+                                    🙏 You prayed for
+                                    this request.
+
+                                    ${
+                                        prayer.completed_at
+
+                                            ?
+
+                                            `
+                                                <br>
+
+                                                <small>
+
+                                                    ${
+                                                        esc(
+                                                            formatDate(
+                                                                prayer.completed_at
+                                                            )
+                                                        )
+                                                    }
+
+                                                </small>
+                                            `
+
+                                            :
+
+                                            ""
+
+                                    }
+
+                                </div>
+
+                            `
+
+                            :
+
+                            `
+
+                                <div
+                                    class="admin-actions"
+                                    style="margin-top:12px;"
+                                >
+
+                                    <button
+                                        class="button"
+                                        type="button"
+                                        onclick="prayForAssignment(
+                                            ${Number(
+                                                prayer.assignment_id
+                                            )},
+                                            this
+                                        )"
+                                    >
+
+                                        🙏 I Prayed
+
+                                    </button>
+
+                                </div>
+
+                            `
+                    }
+
+                </article>
+
+            `;
+
+        }
+
+
+        /* =====================================================
+           RENDER PUBLIC PRAYERS
+        ====================================================== */
+
+        function renderAssignedPrayers(
+            prayers
+        ) {
+
+            const active =
+                prayers.filter(
+                    prayer =>
+                        !prayer.completed_at
+                );
+
+
+            const completed =
+                prayers.filter(
+                    prayer =>
+                        prayer.completed_at
+                );
+
+
+            $("activePrayerCount")
+                .textContent =
+                active.length;
+
+
+            $("completedPrayerCount")
+                .textContent =
+                completed.length;
+
+
+            $("activePrayerList")
+                .innerHTML =
+
+                active.length
+
+                    ?
+
+                    active
+                        .map(
+                            prayerCard
+                        )
+                        .join("")
+
+                    :
+
+                    `
+
+                        <div class="card empty">
+
+                            You have no active
+                            prayer assignments.
+
+                        </div>
+
+                    `;
+
+
+            $("completedPrayerList")
+                .innerHTML =
+
+                completed.length
+
+                    ?
+
+                    completed
+                        .map(
+                            prayerCard
+                        )
+                        .join("")
+
+                    :
+
+                    `
+
+                        <div class="card empty">
+
+                            You have not completed
+                            a prayer yet.
+
+                        </div>
+
+                    `;
+
+        }
+
+
+        /* =====================================================
+           I PRAYED FOR PUBLIC PRAYER
+        ====================================================== */
+
+        async function prayForAssignment(
+            assignmentId,
+            button
+        ) {
+
+            if (
+                button.disabled
+            ) {
+
+                return;
+
+            }
+
+
+            button.disabled =
+                true;
+
+
+            try {
+
+                await api(
+
+                    "/api/room/assignments/" +
+                    encodeURIComponent(
+                        assignmentId
+                    ) +
+                    "/pray",
+
+                    {
+
+                        method: "POST",
+
+                        body:
+                            JSON.stringify({
+                                token
+                            })
+
+                    }
+
+                );
+
+
+                await loadRoom();
+
+
+                schedulePrayerSync(
+                    100
+                );
+
+            }
+
+            catch (error) {
+
+                alert(
+                    error.message
+                );
+
+
+                button.disabled =
+                    false;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           ROOM-ONLY PRAYER FORM
+        ====================================================== */
+
+        $("roomPrayerForm")
+            .addEventListener(
+                "submit",
+                async (event) => {
+
+                    event.preventDefault();
+
+
+                    const request =
+                        $("roomPrayerRequest")
+                            .value
+                            .trim();
+
+
+                    const selectedType =
+                        document.querySelector(
+                            'input[name="roomPrayerType"]:checked'
+                        );
+
+
+                    const type =
+                        selectedType
+                            ? selectedType.value
+                            : "temporary";
+
+
+                    if (!request) {
+
+                        return;
+
+                    }
+
+
+                    const submitButton =
+                        event.target.querySelector(
+                            "button[type='submit']"
+                        );
+
+
+                    submitButton.disabled =
+                        true;
+
+
+                    $("roomPrayerMessage")
+                        .textContent =
+                        "Adding prayer...";
+
+
+                    try {
+
+                        const data =
+                            await api(
+                                "/api/room/prayers",
+                                {
+
+                                    method: "POST",
+
+                                    body:
+                                        JSON.stringify({
+
+                                            token,
+
+                                            request,
+
+                                            type
+
+                                        })
+
+                                }
+                            );
+
+
+                        $("roomPrayerRequest")
+                            .value =
+                            "";
+
+
+                        $("roomPrayerMessage")
+                            .textContent =
+                            data.message ||
+                            "Room prayer added.";
+
+
+                        await loadRoom();
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Room prayer:",
+                            error
+                        );
+
+
+                        $("roomPrayerMessage")
+                            .textContent =
+                            error.message;
+
+                    }
+
+                    finally {
+
+                        submitButton.disabled =
+                            false;
+
+                    }
+
+                }
+            );
+
+
+        /* =====================================================
+           BULLET BUTTON
+        ====================================================== */
+
+        $("bulletButton")
+            .addEventListener(
+                "click",
+                () => {
+
+                    const textarea =
+                        $("roomPrayerRequest");
+
+
+                    const start =
+                        textarea.selectionStart;
+
+
+                    const end =
+                        textarea.selectionEnd;
+
+
+                    const value =
+                        textarea.value;
+
+
+                    const before =
+                        value.substring(
+                            0,
+                            start
+                        );
+
+
+                    const selected =
+                        value.substring(
+                            start,
+                            end
+                        );
+
+
+                    const after =
+                        value.substring(
+                            end
+                        );
+
+
+                    let prefix =
+                        "• ";
+
+
+                    if (
+                        before.length > 0 &&
+                        !before.endsWith("\n")
+                    ) {
+
+                        prefix =
+                            "\n• ";
+
+                    }
+
+
+                    textarea.value =
+                        before +
+                        prefix +
+                        selected +
+                        after;
+
+
+                    textarea.focus();
+
+
+                    const position =
+                        (
+                            before +
+                            prefix +
+                            selected
+                        ).length;
+
+
+                    textarea.setSelectionRange(
+                        position,
+                        position
+                    );
+
+                }
+            );
+
+
+        /* =====================================================
+           RENDER ROOM-ONLY PRAYERS
+        ====================================================== */
+
+        function renderRoomPrayers(
+            prayers
+        ) {
+
+            const list =
+                $("roomOnlyList");
+
+
+            if (
+                !prayers.length
+            ) {
+
+                list.innerHTML = `
+
+                    <div class="card empty">
+
+                        No private room prayers yet.
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
+
+
+            list.innerHTML =
+                prayers
+                    .map(
+                        prayer => `
+
+                            <article
+                                class="card room-only-card"
+                            >
+
+                                <div
+                                    class="room-prayer-meta"
+                                >
+
+                                    <span>
+
+                                        ${
+                                            prayer.is_temporary
+
+                                                ?
+
+                                                `
+                                                    <span
+                                                        class="room-badge temporary-badge"
+                                                    >
+
+                                                        ⏳ Temporary
+
+                                                    </span>
+                                                `
+
+                                                :
+
+                                                `
+                                                    <span
+                                                        class="room-badge saved-badge"
+                                                    >
+
+                                                        💾 Saved
+
+                                                    </span>
+                                                `
+                                        }
+
+                                    </span>
+
+
+                                    <span>
+
+                                        🙏 ${
+                                            Number(
+                                                prayer.prayer_count ||
+                                                0
+                                            )
+                                        }
+
+                                    </span>
+
+                                </div>
+
+
+                                <div
+                                    class="room-prayer-text"
+                                >
+
+                                    ${esc(
+                                        prayer.request
+                                    )}
+
+                                </div>
+
+
+                                <div class="author">
+
+                                    Added by
+
+                                    ${
+                                        esc(
+                                            prayer.creator_name ||
+                                            "Someone"
+                                        )
+                                    }
+
+                                    <br>
+
+                                    <small>
+
+                                        ${
+                                            esc(
+                                                formatDate(
+                                                    prayer.created_at
+                                                )
+                                            )
+                                        }
+
+                                    </small>
+
+                                </div>
+
+
+                                <div
+                                    class="admin-actions"
+                                    style="margin-top:12px;"
+                                >
+
+
+                                    <!-- I PRAYED -->
+
+                                    <button
+                                        class="button"
+                                        type="button"
+                                        onclick="prayForRoomPrayer(
+                                            ${Number(
+                                                prayer.id
+                                            )},
+                                            this
+                                        )"
+                                    >
+
+                                        🙏 I Prayed
+
+                                    </button>
+
+
+                                    <!-- DELETE -->
+
+                                    ${
+                                        prayer.can_delete
+
+                                            ?
+
+                                            `
+                                                <button
+                                                    class="button danger-button"
+                                                    type="button"
+                                                    onclick="deleteRoomPrayer(
+                                                        ${Number(
+                                                            prayer.id
+                                                        )}
+                                                    )"
+                                                >
+
+                                                    🗑️ Delete
+
+                                                </button>
+                                            `
+
+                                            :
+
+                                            ""
+                                    }
+
+                                </div>
+
+                            </article>
+
+                        `
+                    )
+                    .join("");
+
+        }
+
+
+        /* =====================================================
+           I PRAYED FOR ROOM-ONLY PRAYER
+           
+           IMPORTANT:
+           Backend route is /react
+        ====================================================== */
+
+        async function prayForRoomPrayer(
+            id,
+            button
+        ) {
+
+            if (
+                button.disabled
+            ) {
+
+                return;
+
+            }
+
+
+            button.disabled =
+                true;
+
+
+            try {
+
+                await api(
+
+                    "/api/room/prayers/" +
+                    encodeURIComponent(
+                        id
+                    ) +
+                    "/react",
+
+                    {
+
+                        method: "POST",
+
+                        body:
+                            JSON.stringify({
+                                token
+                            })
+
+                    }
+
+                );
+
+
+                await loadRoom();
+
+            }
+
+            catch (error) {
+
+                alert(
+                    error.message
+                );
+
+
+                button.disabled =
+                    false;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           DELETE ROOM-ONLY PRAYER
+        ====================================================== */
+
+        async function deleteRoomPrayer(
+            id
+        ) {
+
+            if (
+                !confirm(
+                    "Delete this room prayer?"
+                )
+            ) {
+
+                return;
+
+            }
+
+
+            try {
+
+                await api(
+
+                    "/api/room/prayers/" +
+                    encodeURIComponent(
+                        id
+                    ),
+
+                    {
+
+                        method: "DELETE",
+
+                        body:
+                            JSON.stringify({
+                                token
+                            })
+
+                    }
+
+                );
+
+
+                await loadRoom();
+
+            }
+
+            catch (error) {
+
+                alert(
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        /* =====================================================
+           COPY ROOM CODE
+        ====================================================== */
+
+        $("copyCodeButton")
+            .addEventListener(
+                "click",
+                async () => {
+
+                    if (
+                        !roomData ||
+                        !roomData.room ||
+                        !roomData.room.code
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    try {
+
+                        await navigator
+                            .clipboard
+                            .writeText(
+                                roomData.room.code
+                            );
+
+
+                        $("copyCodeButton")
+                            .textContent =
+                            "✅ Copied!";
+
+
+                        setTimeout(
+                            () => {
+
+                                $("copyCodeButton")
+                                    .textContent =
+                                    "📋 Copy Code";
+
+                            },
+                            1500
+                        );
+
+                    }
+
+                    catch {
+
+                        alert(
+                            "Room code: " +
+                            roomData.room.code
+                        );
+
+                    }
+
+                }
+            );
+
+
+        /* =====================================================
+           LEAVE ROOM
+        ====================================================== */
+
+        $("leaveButton")
+            .addEventListener(
+                "click",
+                async () => {
+
+                    if (
+                        !confirm(
+                            "Leave the Prayer Room?"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    try {
+
+                        await api(
+                            "/api/room/leave",
+                            {
+
+                                method: "POST",
+
+                                body:
+                                    JSON.stringify({
+                                        token
+                                    })
+
+                            }
+                        );
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Leave:",
+                            error
+                        );
+
+                    }
+
+
+                    stopHeartbeat();
+
+
+                    clearTimeout(
+                        prayerSyncTimer
+                    );
+
+
+                    localStorage.removeItem(
+                        "prayerRoomToken"
+                    );
+
+
+                    token =
+                        null;
+
+
+                    roomData =
+                        null;
+
+
+                    showJoinScreen();
+
+                }
+            );
+
+
+        /* =====================================================
+           HEARTBEAT
+        ====================================================== */
+
+        function startHeartbeat() {
+
+            stopHeartbeat();
+
+
+            heartbeatTimer =
+                setInterval(
+                    async () => {
+
+                        if (!token) {
+
+                            return;
+
+                        }
+
+
+                        try {
+
+                            const data =
+                                await api(
+                                    "/api/room/heartbeat",
+                                    {
+
+                                        method: "POST",
+
+                                        body:
+                                            JSON.stringify({
+                                                token
+                                            })
+
+                                    }
+                                );
+
+
+                            $("roomCount")
+                                .textContent =
+                                data.roomCount;
+
+                        }
+
+                        catch (error) {
+
+                            console.error(
+                                "Heartbeat:",
+                                error
+                            );
+
+                        }
+
+                    },
+                    5000
+                );
+
+        }
+
+
+        /* =====================================================
+           STOP HEARTBEAT
+        ====================================================== */
+
+        function stopHeartbeat() {
+
+            if (
+                heartbeatTimer
+            ) {
+
+                clearInterval(
+                    heartbeatTimer
+                );
+
+
+                heartbeatTimer =
+                    null;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           SOCKET.IO ROOM COUNT
+        ====================================================== */
+
+        socket.on(
+            "room-count",
+            count => {
+
+                $("roomCount")
+                    .textContent =
+                    count;
+
+            }
+        );
+
+
+        /* =====================================================
+           SOCKET.IO ROOM DATA
+        ====================================================== */
+
+        socket.on(
+            "room-data-changed",
+            () => {
+
+                if (token) {
+
+                    loadRoom();
+
+                }
+
+            }
+        );
+
+
+        /* =====================================================
+           BEFORE UNLOAD
+        ====================================================== */
+
+        window.addEventListener(
+            "beforeunload",
+            () => {
+
+                if (!token) {
+
+                    return;
+
+                }
+
+
+                try {
+
+                    const body =
+                        JSON.stringify({
+                            token
+                        });
+
+
+                    navigator.sendBeacon(
+                        "/api/room/leave",
+
+                        new Blob(
+                            [body],
+                            {
+                                type:
+                                    "application/json"
+                            }
+                        )
+                    );
+
+                }
+
+                catch {
+
+                    /*
+                      Heartbeat timeout will
+                      eventually clean this up.
+                    */
+
+                }
+
+            }
+        );
+
+
+        /* =====================================================
+           INITIAL LOAD
+        ====================================================== */
+
+        if (token) {
+
+            loadRoom();
+
+        }
+
+        else {
+
+            showJoinScreen();
+
+        }
+
+        const prayerInput = document.getElementById("roomPrayerRequest");
+
+if (prayerInput) {
+    prayerInput.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter") return;
+
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+
+        const before = this.value.substring(0, start);
+        const after = this.value.substring(end);
+
+        const currentLine = before.split("\n").pop();
+
+        // If current line starts with a bullet
+        const bulletMatch = currentLine.match(/^(\s*)•\s?/);
+
+        if (bulletMatch) {
+            e.preventDefault();
+
+            const indentation = bulletMatch[1];
+
+            this.value =
+                before +
+                "\n" +
+                indentation +
+                "• " +
+                after;
+
+            const newPosition =
+                start + 1 + indentation.length + 2;
+
+            this.selectionStart = newPosition;
+            this.selectionEnd = newPosition;
+        }
+    });
+}
+
+    </script>
+
 </body>
 
 </html>
